@@ -74,7 +74,6 @@
     .toast.warn { background: #eab308; color: #000; }
     .hidden { display: none !important; }
 
-    /* Modals CSS */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; justify-content: center; align-items: center; }
     .modal-content { background: var(--bg-panel); border: 1px solid var(--border); padding: 24px; border-radius: 8px; width: 400px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
     .modal-title { font-size: 1.2rem; margin-bottom: 16px; color: white; display: flex; justify-content: space-between; }
@@ -208,7 +207,6 @@
     </section>
   </main>
 
-  <!-- Modal Riwayat Versi -->
   <div id="modal-history" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="modal-title">
@@ -220,7 +218,6 @@
     </div>
   </div>
 
-  <!-- Modal Deploy Vercel -->
   <div id="modal-deploy" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="modal-title">
@@ -340,39 +337,80 @@
         if (app.files['src/App.jsx'] || app.files['App.jsx'] || app.files['src/main.jsx']) {
           let allComponentsCode = '';
           let mainCode = app.files['src/main.jsx'] || app.files['main.jsx'] || '';
+          let importsArray = [];
           
+          // Fungsi Helper: Mencabut 'import' agar bisa diletakkan di Top Level (paling atas)
+          const extractImports = (code) => {
+             let cleaned = code;
+             const importRegex = /import\s+.*?from\s+['"].*?['"];?/g;
+             const matches = code.match(importRegex);
+             if (matches) {
+               matches.forEach(m => {
+                 if (!m.includes('./') && !m.includes('../')) { // Hanya ambil import eksternal (react, dll)
+                   importsArray.push(m);
+                 }
+               });
+             }
+             // Buang semua import dari dalam body
+             cleaned = cleaned.replace(importRegex, '');
+             return cleaned;
+          };
+
           for (const [filename, content] of Object.entries(app.files)) {
             if (filename.endsWith('.jsx') && !filename.includes('main.jsx')) {
-              let cleanContent = content;
-              cleanContent = cleanContent.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
+              let cleanContent = extractImports(content);
+              
+              // Hapus semua jenis export secara kuat (Anti Duplicate)
+              cleanContent = cleanContent.replace(/export\s+default\s+function/g, 'function');
+              cleanContent = cleanContent.replace(/export\s+function/g, 'function');
+              cleanContent = cleanContent.replace(/export\s+const/g, 'const');
               cleanContent = cleanContent.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, '');
+              
               allComponentsCode += '\n/* File: ' + filename + ' */\n' + cleanContent + '\n';
             }
           }
           
-          mainCode = mainCode.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
+          mainCode = extractImports(mainCode);
+          
+          // Deduplikasi Import ES6
+          const uniqueImports = [...new Set(importsArray)].join('\n');
 
-          // Anti-Bug: Split script tags
+          // Menghindari Bug Penutup Script di HTML String
           const scriptStart = '<' + 'script type="text/babel" data-type="module">';
           const scriptEnd = '</' + 'script>';
 
-          htmlContent = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
-            '<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
-            '<' + 'script type="importmap">\n{"imports": {"react": "https://esm.sh/react@18.2.0","react-dom/client": "https://esm.sh/react-dom@18.2.0/client","lucide-react": "https://esm.sh/lucide-react"}}\n</' + 'script>\n' +
-            '<' + 'script src="https://unpkg.com/@babel/standalone/babel.min.js"></' + 'script>\n' +
-            '<style>' + (app.files['style.css'] || '') + '</style>\n' +
-            '</head>\n<body>\n' +
-            '<div id="root"></div>\n' +
-            scriptStart + '\n' +
-            'try {\n' +
-            allComponentsCode + '\n' +
-            mainCode + '\n' +
-            '} catch (err) {\n' +
-            '  document.getElementById("root").innerHTML = "<div style=\'color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;\'><h3>🚨 React Syntax Error</h3><p>" + err.message + "</p></div>";\n' +
-            '}\n' +
-            scriptEnd + '\n</body>\n</html>';
+          // Merakit HTML Murni yang mampu menjalankan React di Browser tanpa Node.js
+          htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <`+`script type="importmap">
+  {"imports": {"react": "https://esm.sh/react@18.2.0","react-dom/client": "https://esm.sh/react-dom@18.2.0/client","lucide-react": "https://esm.sh/lucide-react"}}
+  <`+`/script>
+  <`+`script src="https://unpkg.com/@babel/standalone/babel.min.js"><`+`/script>
+  <style>${app.files['style.css'] || ''}</style>
+  <`+`script>
+    // Penangkap Error Global di React Preview
+    window.addEventListener('error', function(e) {
+      document.getElementById('root').innerHTML = '<div style="color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;"><h3>🚨 Terdapat Error di React</h3><p>' + e.message + '</p></div>';
+    });
+  <`+`/script>
+</head>
+<body>
+  <div id="root"></div>
+  ${scriptStart}
+${uniqueImports}
+
+${allComponentsCode}
+
+${mainCode}
+  ${scriptEnd}
+</body>
+</html>`;
             
         } else {
+          // Render HTML/JS Biasa (Non-React)
           htmlContent = app.files['index.html'] || '<h1>File index.html tidak ditemukan</h1>';
           if (app.files['style.css']) {
             htmlContent = htmlContent.replace('</head>', '<style>' + app.files['style.css'] + '</style></head>');
@@ -541,7 +579,7 @@
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              name: projectName.substring(0, 52),
+              name: projectName.substring(0, 52), // Limit Vercel
               target: 'production',
               files: vercelFiles,
               projectSettings: { framework: null }
@@ -631,9 +669,9 @@
             html = html.replace(/<script src="?\/?script\.js"?><\/script>/g, '');
             fixed = true;
           }
-          // Suntikkan tag module JSX jika belum ada
+          // Suntikkan tag module JSX secara aman menghindari bug tag penutup
           if (!html.includes('src="/src/main.jsx"')) {
-            html = html.replace('</body>', '  <script type="module" src="/src/main.jsx"><' + '/script>\n</body>');
+            html = html.replace('</body>', '  <' + 'script type="module" src="/src/main.jsx"><' + '/script>\n</body>');
             fixed = true;
           }
           app.files['index.html'] = html;
@@ -676,9 +714,10 @@
               
               ui.log('------------------------------------------------', 'highlight');
               ui.log('✅ PROSES BUILD SELESAI 100%', 'success');
-              ui.log('👉 Gunakan Live Preview atau Download ZIP untuk menyimpan.', 'warn');
+              ui.log('👉 Klik "Download ZIP" untuk menyimpan atau "🚀 Vercel" untuk publikasi.', 'warn');
               ui.log('------------------------------------------------', 'highlight');
 
+              // Auto Fokus ke file README.md (Panduan)
               if (app.files['README.md']) {
                 setTimeout(() => {
                   app.switchFile('README.md');

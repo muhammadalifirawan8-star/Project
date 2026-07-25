@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AppCraft Fullstack</title>
   
+  <!-- JSZip untuk fitur Download ZIP -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   
   <style>
@@ -14,6 +15,7 @@
       --success: #10b981; --success-hover: #059669; --purple: #8b5cf6; --purple-hover: #7c3aed;
       --danger: #ef4444; --font-sans: 'Segoe UI', system-ui, sans-serif;
       --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      --warning: #f59e0b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background-color: var(--bg-dark); color: var(--text-main); font-family: var(--font-sans); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -40,15 +42,17 @@
     .file-tree li.file.active-file { background: rgba(59, 130, 246, 0.15); color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
     .file-tree li.folder { cursor: default; font-weight: 600; flex-direction: column; align-items: flex-start; color: #cbd5e1;}
 
-    .input-modern { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; transition: 0.2s; font-family: var(--font-sans); }
-    .input-modern:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+    .input-modern, select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; transition: 0.2s; font-family: var(--font-sans); width: 100%;}
+    .input-modern:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
 
-    .btn { padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; color: white; font-size: 0.9rem;}
+    .btn { padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; color: white; font-size: 0.85rem;}
     .btn:disabled { opacity: 0.6; cursor: wait; }
     .btn-primary { background: var(--primary); } .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
     .btn-success { background: var(--success); } .btn-success:hover:not(:disabled) { background: var(--success-hover); }
     .btn-purple { background: var(--purple); } .btn-purple:hover:not(:disabled) { background: var(--purple-hover); }
-    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-warning { background: var(--warning); color: #000; } .btn-warning:hover:not(:disabled) { background: #d97706; }
+    .btn-dark { background: #000; border: 1px solid var(--border); } .btn-dark:hover:not(:disabled) { background: #111; }
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
     .editor-header { background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between;}
     .tab { padding: 10px 20px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; }
@@ -65,11 +69,19 @@
     .terminal-header { background: #1a1a1a; padding: 6px 16px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     .terminal-body { flex: 1; padding: 12px 16px; color: #22c55e; font-family: var(--font-mono); font-size: 0.85rem; overflow-y: auto; line-height: 1.5; }
 
-    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; font-weight: 500; z-index: 1000; transition: 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; font-weight: 500; z-index: 9999; transition: 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
     .toast.success { background: var(--success); color: white; }
     .toast.error { background: var(--danger); color: white; }
     .toast.warn { background: #eab308; color: #000; }
     .hidden { display: none !important; }
+
+    /* Modals CSS */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+    .modal-content { background: var(--bg-panel); border: 1px solid var(--border); padding: 24px; border-radius: 8px; width: 400px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
+    .modal-title { font-size: 1.2rem; margin-bottom: 16px; color: white; display: flex; justify-content: space-between; }
+    .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; }
+    .history-item { padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .history-item:hover { background: rgba(255,255,255,0.05); }
   </style>
 </head>
 <body>
@@ -135,9 +147,7 @@
               <li class="file" data-file="package-lock.json" onclick="app.switchFile('package-lock.json')">🔒 package-lock.json</li>
               <li class="file" data-file="tsconfig.json" onclick="app.switchFile('tsconfig.json')">🟦 tsconfig.json</li>
               <li class="file" data-file="vite.config.js" onclick="app.switchFile('vite.config.js')">⚡ vite.config.js</li>
-              <li class="file" data-file="webpack.config.js" onclick="app.switchFile('webpack.config.js')">📦 webpack.config.js</li>
               <li class="file" data-file="vercel.json" onclick="app.switchFile('vercel.json')">▲ vercel.json</li>
-              <li class="file" data-file="netlify.toml" onclick="app.switchFile('netlify.toml')">💠 netlify.toml</li>
               <li class="file" data-file="Dockerfile" onclick="app.switchFile('Dockerfile')">🐳 Dockerfile</li>
               <li class="file" data-file=".github/workflows/deploy.yml" onclick="app.switchFile('.github/workflows/deploy.yml')">🚀 deploy.yml</li>
             </ul>
@@ -147,18 +157,27 @@
 
       <div id="panel-ai" class="panel hidden">
         <h3>✨ Fullstack AI Agent</h3>
-        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi React SPA..." style="height: 100px; resize: none;"></textarea>
+        <!-- FITUR BARU: Template Selector -->
+        <select id="ai-template" class="input-modern" style="margin-bottom: 5px; padding: 6px;">
+          <option value="bebas">💡 Custom (Bebas)</option>
+          <option value="pos">🛒 POS Kasir (React)</option>
+          <option value="landing">🚀 Landing Page Web</option>
+          <option value="api">⚙️ Backend REST API</option>
+        </select>
+        <textarea id="input-prompt" class="input-modern" placeholder="Instruksi tambahan AI..." style="height: 70px; resize: none;"></textarea>
         <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Full Project</button>
       </div>
 
       <div id="panel-config" class="panel hidden">
         <hr style="border-color: var(--border);">
         <label>Project ID (URL Slug)</label>
-        <input type="text" id="input-project" class="input-modern" placeholder="ex: web-pro-v1">
+        <input type="text" id="input-project" class="input-modern" placeholder="ex: my-super-app">
         <div class="action-grid" style="margin-top: 5px;">
           <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan</button>
+          <button id="btn-history" class="btn btn-warning" onclick="app.openHistory()">⏳ Riwayat</button>
           <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Lihat Web</button>
-          <button id="btn-download" class="btn btn-purple" onclick="app.downloadZip()" style="grid-column: span 2;">Download ZIP</button>
+          <button id="btn-deploy" class="btn btn-dark" onclick="app.openDeploy()">🚀 Vercel</button>
+          <button id="btn-download" class="btn btn-purple" onclick="app.downloadZip()" style="grid-column: span 2;">📦 Download ZIP</button>
         </div>
       </div>
     </aside>
@@ -190,10 +209,40 @@
       </div>
     </section>
   </main>
+
+  <!-- Modal Riwayat Versi -->
+  <div id="modal-history" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-title">
+        <span>⏳ Riwayat Versi Project</span>
+        <button class="modal-close" onclick="document.getElementById('modal-history').classList.add('hidden')">✖</button>
+      </div>
+      <p class="desc" style="margin-bottom: 10px;">Kembalikan kode ke waktu sebelumnya jika terjadi error.</p>
+      <div id="history-list" style="max-height: 250px; overflow-y: auto;">
+        <!-- List riwayat masuk sini -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Deploy Vercel -->
+  <div id="modal-deploy" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-title">
+        <span>🚀 Deploy to Vercel</span>
+        <button class="modal-close" onclick="document.getElementById('modal-deploy').classList.add('hidden')">✖</button>
+      </div>
+      <p class="desc" style="margin-bottom: 10px;">Publikasikan langsung ke Vercel CDN. Membutuhkan Vercel API Token (dapat dibuat di vercel.com/account/tokens).</p>
+      <label>Vercel Personal Access Token</label>
+      <input type="password" id="input-vercel-token" class="input-modern" style="margin-bottom: 15px;" placeholder="Tinggalkan kosong jika hanya simulasi">
+      <button id="btn-execute-deploy" class="btn btn-dark" style="width: 100%;" onclick="app.executeDeploy()">Mulai Deployment</button>
+    </div>
+  </div>
   
   <script>
-    // [WAJIB GANTI]: Masukkan URL Web App GAS Anda
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzgtqU6lEbswQ8Bvu-dySw_0KOg-q4EJdOPUnG58SX7Ln-qllKJpR_LxJEZsi7iqd49/exec';
+    // ==========================================
+    // WAJIB GANTI: URL Web App Google Apps Script Anda
+    // ==========================================
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyuUZfCOzIYVSFfieM3L-fZX7yYXvxi8GFTxEfqby-uhcqyeHneAiBBojYxnQdBsNbE/exec';
 
     const escapeHTML = (str) => {
       return String(str).replace(/[&<>'"]/g, 
@@ -249,7 +298,7 @@
       previewTimeout: null,
       
       files: {
-        'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>App</title>\n</head>\n<body>\n  <h1>Welcome</h1>\n</body>\n</html>',
+        'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>App</title>\n</head>\n<body>\n  <h1>Welcome to AppCraft Fullstack</h1>\n</body>\n</html>',
         'README.md': '# Panduan Aplikasi\n\nGenerate aplikasi via AI untuk melihat tutorial di sini.'
       },
 
@@ -293,7 +342,6 @@
         let htmlContent = '';
         
         if (app.files['src/App.jsx'] || app.files['App.jsx'] || app.files['src/main.jsx']) {
-          
           let allComponentsCode = '';
           let mainCode = app.files['src/main.jsx'] || app.files['main.jsx'] || '';
           
@@ -302,30 +350,31 @@
               let cleanContent = content;
               cleanContent = cleanContent.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
               cleanContent = cleanContent.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, '');
-              
-              // MENGGUNAKAN PENGGABUNGAN STRING (+) ANTI-BUG
               allComponentsCode += '\n/* File: ' + filename + ' */\n' + cleanContent + '\n';
             }
           }
           
           mainCode = mainCode.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
 
-          // PERBAIKAN BUG: Memisahkan '</' + 'script>' agar Browser tidak salah paham!
+          // Anti-Bug: Split script tags
+          const scriptStart = '<' + 'script type="text/babel" data-type="module">';
+          const scriptEnd = '</' + 'script>';
+
           htmlContent = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
             '<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
-            '<script type="importmap">\n{"imports": {"react": "https://esm.sh/react@18.2.0","react-dom/client": "https://esm.sh/react-dom@18.2.0/client","lucide-react": "https://esm.sh/lucide-react"}}\n</' + 'script>\n' +
-            '<script src="https://unpkg.com/@babel/standalone/babel.min.js"></' + 'script>\n' +
+            '<' + 'script type="importmap">\n{"imports": {"react": "https://esm.sh/react@18.2.0","react-dom/client": "https://esm.sh/react-dom@18.2.0/client","lucide-react": "https://esm.sh/lucide-react"}}\n</' + 'script>\n' +
+            '<' + 'script src="https://unpkg.com/@babel/standalone/babel.min.js"></' + 'script>\n' +
             '<style>' + (app.files['style.css'] || '') + '</style>\n' +
             '</head>\n<body>\n' +
             '<div id="root"></div>\n' +
-            '<script type="text/babel" data-type="module">\n' +
+            scriptStart + '\n' +
             'try {\n' +
             allComponentsCode + '\n' +
             mainCode + '\n' +
             '} catch (err) {\n' +
             '  document.getElementById("root").innerHTML = "<div style=\'color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;\'><h3>🚨 React Syntax Error</h3><p>" + err.message + "</p></div>";\n' +
             '}\n' +
-            '</' + 'script>\n</body>\n</html>';
+            scriptEnd + '\n</body>\n</html>';
             
         } else {
           htmlContent = app.files['index.html'] || '<h1>File index.html tidak ditemukan</h1>';
@@ -333,7 +382,7 @@
             htmlContent = htmlContent.replace('</head>', '<style>' + app.files['style.css'] + '</style></head>');
           }
           if (app.files['script.js']) {
-            htmlContent = htmlContent.replace('</body>', '<script>' + app.files['script.js'] + '</' + 'script></body>');
+            htmlContent = htmlContent.replace('</body>', '<' + 'script>' + app.files['script.js'] + '</' + 'script></body>');
           }
         }
 
@@ -378,7 +427,7 @@
         const id = document.getElementById('input-project').value.trim();
         if (!id) return ui.toast('Project ID harus diisi', 'error');
 
-        ui.loading('btn-save', 'Menyimpan...');
+        ui.loading('btn-save', 'Simpan...');
         try {
           const response = await fetch(GAS_URL, {
             method: 'POST',
@@ -387,7 +436,7 @@
             body: JSON.stringify({ action: 'saveProject', projectId: id, email: app.email, code: JSON.stringify(app.files) })
           });
           const res = await response.json();
-          if (res.status === 'success') ui.toast('Code saved to Cloud!');
+          if (res.status === 'success') ui.toast('Versi baru tersimpan!');
           else throw new Error(res.message);
         } catch (err) {
           ui.toast('Gagal menyimpan', 'error');
@@ -396,12 +445,125 @@
         }
       },
 
+      // FITUR: Buka Modal Riwayat
+      openHistory: async () => {
+        const id = document.getElementById('input-project').value.trim();
+        if (!id) return ui.toast('Isi Project ID dulu untuk melihat riwayat', 'error');
+        
+        ui.loading('btn-history', 'Mencari...');
+        try {
+          const response = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            redirect: 'follow',
+            body: JSON.stringify({ action: 'getHistory', projectId: id })
+          });
+          const res = await response.json();
+          if (res.status === 'success') {
+            const listObj = document.getElementById('history-list');
+            listObj.innerHTML = '';
+            if (res.data.history.length === 0) {
+              listObj.innerHTML = '<p style="color:var(--text-muted)">Belum ada riwayat penyimpanan.</p>';
+            } else {
+              res.data.history.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                  <span style="font-size:0.85rem; color:var(--text-main)">🕒 ${item.timestamp}</span>
+                  <button class="btn btn-sm btn-primary" onclick="app.restoreHistory(${index})">Restore</button>
+                `;
+                listObj.appendChild(div);
+              });
+              // Simpan data di state sementara
+              app.tempHistory = res.data.history;
+            }
+            document.getElementById('modal-history').classList.remove('hidden');
+          }
+        } catch (err) {
+          ui.toast('Gagal mengambil riwayat', 'error');
+        } finally {
+          ui.reset('btn-history');
+        }
+      },
+
+      // FITUR: Restore dari Riwayat
+      restoreHistory: (index) => {
+        if(app.tempHistory && app.tempHistory[index]) {
+          try {
+            app.files = JSON.parse(app.tempHistory[index].code);
+            app.switchFile(app.activeFile);
+            app.refreshPreview();
+            document.getElementById('modal-history').classList.add('hidden');
+            ui.toast('Kode berhasil dikembalikan ke versi lama!', 'success');
+            ui.log('Restore system successful.', 'success');
+          } catch(e) {
+            ui.toast('Format riwayat rusak', 'error');
+          }
+        }
+      },
+
       publish: () => {
         const id = document.getElementById('input-project').value.trim();
         if (!id) return ui.toast('Tentukan Project ID dan simpan terlebih dahulu', 'error');
-        
-        ui.log('Menjalankan Engine Preview untuk Web Browser...', 'warn');
         window.open(GAS_URL + '?id=' + id, '_blank');
+      },
+
+      // FITUR: Modal & Simulasi Deploy Vercel
+      openDeploy: () => {
+        document.getElementById('modal-deploy').classList.remove('hidden');
+      },
+      
+      executeDeploy: async () => {
+        const token = document.getElementById('input-vercel-token').value.trim();
+        const projectName = document.getElementById('input-project').value.trim() || 'appcraft-project';
+        document.getElementById('modal-deploy').classList.add('hidden');
+        
+        ui.log('------------------------------------------------', 'highlight');
+        ui.log('🚀 MEMULAI DEPLOYMENT KE VERCEL...', 'highlight');
+        
+        if (!token) {
+          ui.log('Token Vercel kosong. Menjalankan simulasi Mode Offline...', 'warn');
+          setTimeout(() => ui.log('Menyiapkan Build Files...', 'info'), 1000);
+          setTimeout(() => ui.log('Running Vercel Build (Simulasi)...', 'info'), 2500);
+          setTimeout(() => {
+            ui.log('✅ Simulasi Deployment Sukses!', 'success');
+            ui.toast('Mode Simulasi Selesai', 'warn');
+          }, 4000);
+          return;
+        }
+
+        // Logic Asli API Vercel jika user memberikan token
+        ui.log('Membungkus file untuk Vercel API...', 'info');
+        let vercelFiles = [];
+        for (const [filename, content] of Object.entries(app.files)) {
+          vercelFiles.push({ file: filename, data: content });
+        }
+        
+        try {
+          // Implementasi Vercel API v13 Create Deployment
+          const response = await fetch('https://api.vercel.com/v13/deployments', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name: projectName.substring(0, 52), // Vercel limit name length
+              target: 'production',
+              files: vercelFiles,
+              projectSettings: { framework: null }
+            })
+          });
+          const res = await response.json();
+          if (res.error) throw new Error(res.error.message);
+          
+          ui.log(`✅ Sukses! Aplikasi Live di: https://${res.url}`, 'success');
+          ui.toast('Aplikasi berhasil dipublikasikan!', 'success');
+          setTimeout(() => window.open(`https://${res.url}`, '_blank'), 2000);
+        } catch (error) {
+          ui.log(`Vercel Deploy Error: ${error.message}`, 'error');
+          ui.toast('Gagal melakukan Deployment', 'error');
+        }
       },
 
       downloadZip: async () => {
@@ -433,17 +595,18 @@
 
       askGemini: async () => {
         const promptInput = document.getElementById('input-prompt').value.trim();
-        if (!promptInput) return ui.toast('Masukkan instruksi untuk AI.', 'error');
+        const templateInput = document.getElementById('ai-template').value;
+        if (!promptInput && templateInput === 'bebas') return ui.toast('Masukkan instruksi untuk AI.', 'error');
         
         ui.loading('btn-ai', 'AI Berpikir...');
-        ui.log('Menginstruksikan AI untuk membangun arsitektur...', 'info');
+        ui.log(`Menginstruksikan AI (Mode: ${templateInput})...`, 'info');
         
         try {
           const response = await fetch(GAS_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             redirect: 'follow',
-            body: JSON.stringify({ action: 'askGemini', prompt: promptInput })
+            body: JSON.stringify({ action: 'askGemini', prompt: promptInput, template: templateInput })
           });
           const res = await response.json();
           
@@ -451,34 +614,30 @@
             try {
               const generatedFiles = JSON.parse(res.data.answer);
               let count = 0;
-              
               for (const [filename, content] of Object.entries(generatedFiles)) {
                 app.files[filename] = content;
                 count++;
               }
-              
-              ui.toast(count + ' file berhasil di-build!', 'success');
+              ui.toast(count + ' file di-build!', 'success');
               
               ui.log('------------------------------------------------', 'highlight');
               ui.log('✅ PROSES BUILD SELESAI 100%', 'success');
-              ui.log('👉 Klik "Download ZIP" untuk menyimpan ke komputer Anda.', 'warn');
-              ui.log('👉 Panduan cara pakainya sedang dibuka otomatis...', 'warn');
+              ui.log('👉 Gunakan Live Preview atau Download ZIP untuk menyimpan.', 'warn');
               ui.log('------------------------------------------------', 'highlight');
 
               if (app.files['README.md']) {
                 setTimeout(() => {
                   app.switchFile('README.md');
-                  ui.toast('Membuka Panduan Instalasi', 'warn');
                   app.refreshPreview();
-                }, 1000);
+                }, 800);
               } else {
                 app.switchFile(app.activeFile);
                 app.refreshPreview();
               }
               
             } catch (parseError) {
-              ui.log('AI gagal merespons dengan format JSON yang valid.', 'error');
-              ui.toast('Gagal memisahkan file. Coba Generate ulang.', 'error');
+              ui.log('AI membalas format aneh. Coba ulangi Generate.', 'error');
+              ui.toast('AI Gagal merespons JSON', 'error');
             }
             document.getElementById('input-prompt').value = '';
           } else {

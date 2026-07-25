@@ -1,5 +1,5 @@
 // [WAJIB GANTI]: Masukkan URL Web App GAS Anda di bawah ini
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwpqVQimN8shhiaES0J1H61pw9c4XhauSIScAZKbHIR-lVsabQIwfU8IuaSX-BvkFMT/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOOAcB8UPapZ_OIl2QFJJwKSNIonwY1h5QVevADIp-NXyh08yxYsWuG-WddN2GmPp0/exec';
 
 // Keamanan: Mencegah injeksi XSS (Cross-Site Scripting)
 const escapeHTML = (str) => {

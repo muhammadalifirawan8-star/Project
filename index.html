@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexus IDE - Serverless Builder</title>
-  
+  <title>Nexus IDE - Fullstack Enterprise</title>
   <style>
+    /* DESAIN DARK MODE PROFESIONAL */
     :root {
       --bg-dark: #0f172a; --bg-panel: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
       --border: #334155; --primary: #3b82f6; --primary-hover: #2563eb;
@@ -22,38 +22,39 @@
     .badge.active { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
 
     .layout { display: flex; flex: 1; overflow: hidden; }
-    .sidebar { width: 300px; background: var(--bg-panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+    .sidebar { width: 320px; background: var(--bg-panel); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
     .editor-area { flex: 1; display: flex; flex-direction: column; }
 
     .panel { display: flex; flex-direction: column; gap: 12px; }
     .panel h3 { font-size: 1rem; color: var(--text-main); }
     .desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
-    label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
+    /* FILE TREE MODERN */
     .file-tree { list-style: none; font-size: 0.85rem; margin-top: 5px; }
     .file-tree ul { list-style: none; padding-left: 14px; border-left: 1px solid var(--border); margin-left: 6px; margin-top: 4px; }
-    .file-tree li { padding: 5px 8px; border-radius: 4px; display: flex; align-items: center; gap: 8px; color: var(--text-muted); user-select: none; margin-bottom: 2px;}
-    .file-tree li.file { cursor: pointer; }
+    .file-tree li { padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 8px; color: var(--text-muted); user-select: none; margin-bottom: 2px;}
+    .file-tree li.file { cursor: pointer; transition: 0.2s;}
     .file-tree li.file:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
     .file-tree li.file.active-file { background: rgba(59, 130, 246, 0.15); color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
-    .file-tree li.folder { cursor: default; font-weight: 600; flex-direction: column; align-items: flex-start; }
+    .file-tree li.folder { cursor: default; font-weight: 600; flex-direction: column; align-items: flex-start; color: #cbd5e1;}
 
     .input-modern { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); padding: 10px 12px; border-radius: 6px; outline: none; transition: 0.2s; font-family: var(--font-sans); }
     .input-modern:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
 
-    .btn { padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; color: white;}
+    .btn { padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; color: white; font-size: 0.9rem;}
     .btn:disabled { opacity: 0.6; cursor: wait; }
     .btn-primary { background: var(--primary); } .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
     .btn-success { background: var(--success); } .btn-success:hover:not(:disabled) { background: var(--success-hover); }
     .btn-purple { background: var(--purple); } .btn-purple:hover:not(:disabled) { background: var(--purple-hover); }
     .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    .editor-header { background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; }
+    .editor-header { background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between;}
     .tab { padding: 10px 20px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; }
     .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-dark); }
-    .code-editor { flex: 1; background: var(--bg-dark); color: #e2e8f0; font-family: var(--font-mono); font-size: 14px; padding: 20px; border: none; outline: none; resize: none; line-height: 1.6; }
+    .code-editor { flex: 1; background: var(--bg-dark); color: #e2e8f0; font-family: var(--font-mono); font-size: 13px; padding: 20px; border: none; outline: none; resize: none; line-height: 1.6; }
 
-    .terminal-container { height: 200px; border-top: 1px solid var(--border); display: flex; flex-direction: column; background: #000; }
+    .terminal-container { height: 180px; border-top: 1px solid var(--border); display: flex; flex-direction: column; background: #000; }
     .terminal-header { background: #1a1a1a; padding: 6px 16px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     .terminal-body { flex: 1; padding: 12px 16px; color: #22c55e; font-family: var(--font-mono); font-size: 0.85rem; overflow-y: auto; line-height: 1.5; }
 
@@ -71,7 +72,7 @@
         <polyline points="2 17 12 22 22 17"></polyline>
         <polyline points="2 12 12 17 22 12"></polyline>
       </svg>
-      <span>Nexus IDE</span>
+      <span>Nexus IDE - Fullstack</span>
     </div>
     <div id="user-badge" class="badge">Status: Guest</div>
   </nav>
@@ -82,7 +83,6 @@
     <aside class="sidebar">
       <div id="panel-auth" class="panel">
         <h3>Aktivasi Workspace</h3>
-        <p class="desc">Masukkan email untuk membuka akses IDE.</p>
         <input type="email" id="input-email" class="input-modern" placeholder="email@domain.com">
         <button id="btn-auth" class="btn btn-primary" onclick="app.activate()">Mulai Coding</button>
       </div>
@@ -90,87 +90,96 @@
       <div id="panel-explorer" class="panel hidden">
         <h3>📁 File Explorer</h3>
         <ul class="file-tree">
+          <!-- Web Dasar -->
           <li class="file active-file" data-file="index.html" onclick="app.switchFile('index.html')">📄 index.html</li>
           <li class="file" data-file="style.css" onclick="app.switchFile('style.css')">🎨 style.css</li>
           <li class="file" data-file="script.js" onclick="app.switchFile('script.js')">📜 script.js</li>
-          <li class="file" data-file=".gitignore" onclick="app.switchFile('.gitignore')">⚙️ .gitignore</li>
-          <li class="file" data-file=".env.example" onclick="app.switchFile('.env.example')">🔒 .env.example</li>
-          <li class="file" data-file="package.json" onclick="app.switchFile('package.json')">📦 package.json</li>
-          <li class="file" data-file="vite.config.js" onclick="app.switchFile('vite.config.js')">⚡ vite.config.js</li>
-          <li class="file" data-file="vercel.json" onclick="app.switchFile('vercel.json')">▲ vercel.json</li>
-          <li class="file" data-file="README.md" onclick="app.switchFile('README.md')">📖 README.md</li>
-          <li class="folder">📂 public/
-            <ul>
-              <li class="file" data-file="public/favicon.ico" onclick="app.switchFile('public/favicon.ico')">🖼️ favicon.ico</li>
-              <li class="file" data-file="public/manifest.json" onclick="app.switchFile('public/manifest.json')">⚙️ manifest.json</li>
-              <li class="file" data-file="public/robots.txt" onclick="app.switchFile('public/robots.txt')">🤖 robots.txt</li>
-            </ul>
-          </li>
+          
+          <!-- React / Frontend -->
           <li class="folder">📂 src/
             <ul>
-              <li class="folder">📁 assets/</li>
-              <li class="folder">📁 components/</li>
-              <li class="folder">📁 services/</li>
               <li class="file" data-file="src/App.jsx" onclick="app.switchFile('src/App.jsx')">⚛️ App.jsx</li>
               <li class="file" data-file="src/main.jsx" onclick="app.switchFile('src/main.jsx')">⚛️ main.jsx</li>
+            </ul>
+          </li>
+
+          <!-- Server / Backend -->
+          <li class="folder">📂 backend/
+            <ul>
+              <li class="file" data-file="server.js" onclick="app.switchFile('server.js')">🟢 server.js</li>
+              <li class="file" data-file="Code.gs" onclick="app.switchFile('Code.gs')">🟨 Code.gs</li>
+            </ul>
+          </li>
+          
+          <li class="folder">📂 routes/
+            <ul><li class="file" data-file="routes/api.js" onclick="app.switchFile('routes/api.js')">🛣️ api.js</li></ul>
+          </li>
+          <li class="folder">📂 controllers/
+            <ul><li class="file" data-file="controllers/main.js" onclick="app.switchFile('controllers/main.js')">🎮 main.js</li></ul>
+          </li>
+
+          <!-- Database -->
+          <li class="folder">📂 prisma/
+            <ul><li class="file" data-file="prisma/schema.prisma" onclick="app.switchFile('prisma/schema.prisma')">🗄️ schema.prisma</li></ul>
+          </li>
+          <li class="file" data-file="schema.sql" onclick="app.switchFile('schema.sql')">🗃️ schema.sql</li>
+
+          <!-- DevOps & Configs -->
+          <li class="folder">📂 config & devops
+            <ul>
+              <li class="file" data-file="package.json" onclick="app.switchFile('package.json')">📦 package.json</li>
+              <li class="file" data-file="package-lock.json" onclick="app.switchFile('package-lock.json')">🔒 package-lock.json</li>
+              <li class="file" data-file="tsconfig.json" onclick="app.switchFile('tsconfig.json')">🟦 tsconfig.json</li>
+              <li class="file" data-file="vite.config.js" onclick="app.switchFile('vite.config.js')">⚡ vite.config.js</li>
+              <li class="file" data-file="webpack.config.js" onclick="app.switchFile('webpack.config.js')">📦 webpack.config.js</li>
+              <li class="file" data-file="vercel.json" onclick="app.switchFile('vercel.json')">▲ vercel.json</li>
+              <li class="file" data-file="netlify.toml" onclick="app.switchFile('netlify.toml')">💠 netlify.toml</li>
+              <li class="file" data-file="Dockerfile" onclick="app.switchFile('Dockerfile')">🐳 Dockerfile</li>
+              <li class="file" data-file=".github/workflows/deploy.yml" onclick="app.switchFile('.github/workflows/deploy.yml')">🚀 deploy.yml</li>
             </ul>
           </li>
         </ul>
       </div>
 
-      <div id="panel-config" class="panel hidden">
-        <h3>Konfigurasi Project</h3>
-        <label>Project ID (URL Slug)</label>
-        <input type="text" id="input-project" class="input-modern" placeholder="ex: landing-page-v1">
-        <div class="action-grid">
-          <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan Code</button>
-          <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Lihat Publik</button>
-        </div>
+      <div id="panel-ai" class="panel hidden">
+        <h3>✨ Fullstack AI Agent</h3>
+        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi React SPA dan server Express lengkap dengan Dockerfile..." style="height: 100px; resize: none;"></textarea>
+        <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Full Project</button>
       </div>
 
-      <div id="panel-ai" class="panel hidden">
-        <h3>✨ Gemini AI Assistant</h3>
-        <p class="desc">AI sekarang dapat men-generate banyak file sekaligus (HTML, CSS, JS, package).</p>
-        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi kalkulator lengkap..." style="height: 80px; resize: none;"></textarea>
-        <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Aplikasi</button>
+      <div id="panel-config" class="panel hidden">
+        <hr style="border-color: var(--border);">
+        <label>Project ID (URL Slug)</label>
+        <input type="text" id="input-project" class="input-modern" placeholder="ex: web-pro-v1">
+        <div class="action-grid" style="margin-top: 5px;">
+          <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan</button>
+          <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Lihat Web</button>
+        </div>
       </div>
     </aside>
 
     <section class="editor-area">
       <div class="editor-header">
         <span class="tab active" id="active-tab-name">index.html</span>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Auto-saving diaktifkan</span>
       </div>
-      <textarea id="input-code" class="code-editor" placeholder="<!-- Mulai ketik kode Anda di sini -->"></textarea>
+      <textarea id="input-code" class="code-editor"></textarea>
       
       <div class="terminal-container">
-        <div class="terminal-header">Terminal Output</div>
+        <div class="terminal-header">Terminal / Build Logs</div>
         <div id="terminal-log" class="terminal-body">> Menunggu sistem siap...</div>
       </div>
     </section>
   </main>
   
   <script>
-    // [WAJIB GANTI]: Masukkan URL Web App GAS Anda di bawah ini!
+    // [WAJIB GANTI]: Masukkan URL Web App GAS Anda
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbz9eOBCKzzKs2hRp7sj3M8GOUqJpJpv_PtQj-FR4OmPndEJLjzkxnl3r0udBYQCauJH/exec';
 
     const escapeHTML = (str) => {
       return String(str).replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
       );
-    };
-
-    const callServer = async (payload) => {
-      try {
-        const response = await fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          redirect: 'follow',
-          body: JSON.stringify(payload)
-        });
-        return await response.json();
-      } catch (error) {
-        throw new Error('Koneksi ke server gagal. Pastikan URL GAS benar.');
-      }
     };
 
     const ui = {
@@ -194,7 +203,7 @@
       },
       log: (msg, type = 'info') => {
         const term = document.getElementById('terminal-log');
-        const color = type === 'error' ? '#ef4444' : '#22c55e';
+        const color = type === 'error' ? '#ef4444' : (type === 'warn' ? '#eab308' : '#22c55e');
         const timestamp = new Date().toLocaleTimeString('id-ID');
         term.innerHTML += `<br><span style="color: #64748b">[${timestamp}]</span> <span style="color: ${color}">> ${escapeHTML(msg)}</span>`;
         term.scrollTop = term.scrollHeight;
@@ -213,21 +222,28 @@
       email: '',
       activeFile: 'index.html',
       
+      // Memory Storage untuk seluruh file Fullstack
       files: {
-        'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>Nexus App</title>\n</head>\n<body>\n  <h1>Halo Dunia!</h1>\n</body>\n</html>',
-        'style.css': 'body {\n  background: #f0f0f0;\n}',
-        'script.js': 'console.log("App Ready");',
-        '.gitignore': 'node_modules\ndist\n.env',
-        '.env.example': 'API_KEY=your_key_here',
-        'package.json': '{\n  "name": "nexus-app",\n  "version": "1.0.0"\n}',
-        'vite.config.js': 'export default {};',
+        'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>App</title>\n</head>\n<body>\n  <h1>Welcome</h1>\n</body>\n</html>',
+        'style.css': 'body { font-family: sans-serif; background: #f4f4f5; }',
+        'script.js': 'console.log("Vanilla JS Ready");',
+        'src/App.jsx': '// Kode React akan digenerate AI di sini\nconst App = () => {\n  return <div>Halo React</div>;\n};\n// Babel standalone membutuhkan render langsung:\n// const root = ReactDOM.createRoot(document.getElementById("root"));\n// root.render(<App />);',
+        'src/main.jsx': '// Titik masuk aplikasi React',
+        'server.js': 'const express = require("express");\nconst app = express();\n\napp.get("/", (req, res) => res.send("API Ready"));\n\napp.listen(3000, () => console.log("Server running on port 3000"));',
+        'Code.gs': '// Backend khusus Google Apps Script',
+        'routes/api.js': 'const router = require("express").Router();\nmodule.exports = router;',
+        'controllers/main.js': 'exports.home = (req, res) => { res.send("Home"); };',
+        'prisma/schema.prisma': 'datasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n\ngenerator client {\n  provider = "prisma-client-js"\n}',
+        'schema.sql': 'CREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(100)\n);',
+        'package.json': '{\n  "name": "fullstack-app",\n  "version": "1.0.0",\n  "scripts": { "start": "node server.js" }\n}',
+        'package-lock.json': '{\n  "name": "fullstack-app",\n  "lockfileVersion": 3\n}',
+        'tsconfig.json': '{\n  "compilerOptions": {\n    "target": "ESNext",\n    "module": "CommonJS"\n  }\n}',
+        'vite.config.js': 'import { defineConfig } from "vite";\nexport default defineConfig({});',
+        'webpack.config.js': 'module.exports = {\n  entry: "./src/index.js"\n};',
         'vercel.json': '{\n  "version": 2\n}',
-        'README.md': '# Project Baru',
-        'public/favicon.ico': '<!-- icon binary data -->',
-        'public/manifest.json': '{\n  "name": "Nexus PWA"\n}',
-        'public/robots.txt': 'User-agent: *\nAllow: /',
-        'src/App.jsx': 'export default function App() { return <div>Welcome</div>; }',
-        'src/main.jsx': 'import App from "./App";'
+        'netlify.toml': '[build]\n  command = "npm run build"',
+        'Dockerfile': 'FROM node:18-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nEXPOSE 3000\nCMD ["npm", "start"]',
+        '.github/workflows/deploy.yml': 'name: Deploy\non:\n  push:\n    branches: [ main ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v3\n    - run: npm install'
       },
 
       switchFile: (filename) => {
@@ -238,8 +254,6 @@
         document.querySelectorAll('.file-tree .file').forEach(el => el.classList.remove('active-file'));
         const activeEl = document.querySelector(`.file-tree .file[data-file="${filename}"]`);
         if (activeEl) activeEl.classList.add('active-file');
-        
-        ui.log(`Membuka file: ${filename}`);
       },
       
       activate: async () => {
@@ -248,7 +262,14 @@
 
         ui.loading('btn-auth', 'Memproses...');
         try {
-          const res = await callServer({ action: 'activateAccount', email: emailInput });
+          const response = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            redirect: 'follow',
+            body: JSON.stringify({ action: 'activateAccount', email: emailInput })
+          });
+          const res = await response.json();
+          
           if (res.status === 'success') {
             app.email = emailInput;
             document.getElementById('panel-auth').classList.add('hidden');
@@ -258,10 +279,11 @@
             
             document.getElementById('user-badge').innerText = 'Online';
             document.getElementById('user-badge').classList.add('active');
-            ui.log('Workspace siap.');
+            ui.log('Workspace Fullstack Enterprise siap.');
           } else throw new Error(res.message);
         } catch (err) {
-          ui.toast('Gagal autentikasi', 'error');
+          ui.toast('Gagal terhubung', 'error');
+          ui.log(`Network/CORS Error: Pastikan URL GAS benar dan di set 'Anyone'.`, 'error');
         } finally {
           ui.reset('btn-auth');
         }
@@ -273,8 +295,14 @@
 
         ui.loading('btn-save', 'Menyimpan...');
         try {
-          const res = await callServer({ action: 'saveProject', projectId: id, email: app.email, code: JSON.stringify(app.files) });
-          if (res.status === 'success') ui.toast('Berhasil disimpan');
+          const response = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            redirect: 'follow',
+            body: JSON.stringify({ action: 'saveProject', projectId: id, email: app.email, code: JSON.stringify(app.files) })
+          });
+          const res = await response.json();
+          if (res.status === 'success') ui.toast('Code saved to Cloud!');
           else throw new Error(res.message);
         } catch (err) {
           ui.toast('Gagal menyimpan', 'error');
@@ -285,49 +313,50 @@
 
       publish: () => {
         const id = document.getElementById('input-project').value.trim();
-        if (!id) return ui.toast('Tentukan Project ID', 'error');
+        if (!id) return ui.toast('Tentukan Project ID dan simpan terlebih dahulu', 'error');
+        
+        ui.log(`Menjalankan Engine Preview. Jika file React terdeteksi, Babel akan di-inject...`, 'warn');
+        ui.log(`(Perhatian: File Backend seperti server.js atau Dockerfile tidak dapat dijalankan di web browser, silakan dicopy untuk dijalankan secara lokal)`);
         window.open(`${GAS_URL}?id=${id}`, '_blank');
       },
 
       askGemini: async () => {
         const promptInput = document.getElementById('input-prompt').value.trim();
-        if (!promptInput) return ui.toast('Masukkan instruksi terlebih dahulu.', 'error');
+        if (!promptInput) return ui.toast('Masukkan instruksi untuk AI.', 'error');
         
         ui.loading('btn-ai', 'AI Berpikir...');
-        ui.log('Menginstruksikan AI untuk men-generate banyak file...', 'info');
+        ui.log('Menginstruksikan AI untuk membangun arsitektur Fullstack...', 'info');
         
         try {
-          const res = await callServer({ action: 'askGemini', prompt: promptInput });
+          const response = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            redirect: 'follow',
+            body: JSON.stringify({ action: 'askGemini', prompt: promptInput })
+          });
+          const res = await response.json();
           
           if (res.status === 'success') {
             try {
-              // 1. Coba baca jawaban AI sebagai format JSON multi-file
+              // Parsing output multi-file dari AI
               const generatedFiles = JSON.parse(res.data.answer);
+              let count = 0;
               
-              // 2. Sebarkan isi kode ke masing-masing file di memory
               for (const [filename, content] of Object.entries(generatedFiles)) {
-                // Jika filenya ada di struktur kita, update isinya
                 if (app.files[filename] !== undefined) {
                   app.files[filename] = content;
-                  ui.log(`AI memperbarui: ${filename}`, 'success');
-                } else {
-                  // Jika AI membuat file baru, tambahkan ke memory
-                  app.files[filename] = content;
-                  ui.log(`AI membuat file baru: ${filename}`, 'success');
+                  ui.log(`File di-generate: ${filename}`, 'success');
+                  count++;
                 }
               }
               
-              // 3. Segarkan tampilan editor untuk tab yang sedang aktif
               document.getElementById('input-code').value = app.files[app.activeFile];
-              ui.toast('Aplikasi multi-file berhasil dibuat!', 'success');
+              ui.toast(`${count} file berhasil dibuat!`, 'success');
               
             } catch (parseError) {
-              // FALLBACK: Jika AI kebetulan merespons dengan teks biasa (bukan JSON)
-              ui.log('AI membalas dengan teks tunggal, menambahkannya ke file aktif.', 'info');
-              const codeEditor = document.getElementById('input-code');
-              codeEditor.value += `\n\n/* Generated by AI */\n${res.data.answer}`;
-              app.files[app.activeFile] = codeEditor.value;
-              ui.toast('Kode disuntikkan ke file aktif!', 'success');
+              ui.log('AI membalas dengan teks non-JSON. Menyuntikkan ke file aktif...', 'warn');
+              app.files[app.activeFile] += `\n\n/* Generated by AI */\n${res.data.answer}`;
+              document.getElementById('input-code').value = app.files[app.activeFile];
             }
             
             document.getElementById('input-prompt').value = '';
@@ -335,7 +364,7 @@
             throw new Error(res.message);
           }
         } catch (err) {
-          ui.toast('AI gagal merespons', 'error');
+          ui.toast('Gagal memproses AI', 'error');
           ui.log(`AI Error: ${err.message}`, 'error');
         } finally {
           ui.reset('btn-ai');

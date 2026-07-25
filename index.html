@@ -352,7 +352,7 @@
           for (const [filename, content] of Object.entries(app.files)) {
             if (filename.endsWith('.jsx') && !filename.includes('main.jsx')) {
               let cleanContent = extractImports(content);
-              // Bersihkan export
+              // Bersihkan export dengan regex yang lebih kuat untuk mencegah error React
               cleanContent = cleanContent.replace(/export\s+default\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+default\s+const/g, 'const');
@@ -593,7 +593,23 @@ ${mainCode}
           
           if (res.status === 'success') {
             try {
-              const generatedFiles = JSON.parse(res.data.answer);
+              // --- PERBAIKAN: PEMBERSIH FORMAT AI BANDEL ---
+              let rawAnswer = res.data.answer.trim();
+              
+              // 1. Hapus markdown (```json dan ```)
+              rawAnswer = rawAnswer.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+              
+              // 2. Ambil paksa hanya teks yang ada di antara { dan }
+              const jsonStart = rawAnswer.indexOf('{');
+              const jsonEnd = rawAnswer.lastIndexOf('}');
+              
+              if (jsonStart !== -1 && jsonEnd !== -1) {
+                rawAnswer = rawAnswer.substring(jsonStart, jsonEnd + 1);
+              }
+              
+              const generatedFiles = JSON.parse(rawAnswer);
+              // ---------------------------------------------
+
               for (const [filename, content] of Object.entries(generatedFiles)) {
                 app.files[filename] = content;
               }

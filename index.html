@@ -23,6 +23,13 @@
   <main class="layout">
     <!-- Sidebar: Aktivasi & Konfigurasi -->
     <aside class="sidebar">
+      <!-- AI Assistant Panel -->
+      <div id="panel-ai" class="panel">
+        <h3>✨ Gemini AI Assistant</h3>
+        <p class="desc">Ketik apa yang ingin Anda buat, AI akan menulis kodenya untuk Anda.</p>
+        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan form login dengan tombol biru..." style="height: 80px; resize: none;"></textarea>
+        <button id="btn-ai" class="btn btn-primary" style="background: #8b5cf6;" onclick="app.askGemini()">Generate Kode</button>
+      </div>
       <div id="panel-auth" class="panel">
         <h3>Aktivasi Workspace</h3>
         <p class="desc">Masukkan email untuk membuka akses IDE.</p>

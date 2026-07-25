@@ -1,4 +1,4 @@
-const GAS_URL = 'GANTI_DENGAN_URL_WEB_APP_ANDA';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzNJiZe9Z1vUujiVBYOsD5oNdc-7NLJGrTvIqCO6KWeU19HLk6oORoYQwsU-sWjGgXs/exec';
 
 // --- Utilities ---
 const utils = {

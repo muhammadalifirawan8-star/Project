@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nexus IDE - Fullstack Enterprise</title>
   
-  <!-- Tambahkan Library JSZip di sini untuk fitur Download -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   
   <style>
-    /* DESAIN DARK MODE PROFESIONAL */
     :root {
       --bg-dark: #0f172a; --bg-panel: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
       --border: #334155; --primary: #3b82f6; --primary-hover: #2563eb;
@@ -34,7 +32,6 @@
     .desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
     label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* FILE TREE MODERN */
     .file-tree { list-style: none; font-size: 0.85rem; margin-top: 5px; }
     .file-tree ul { list-style: none; padding-left: 14px; border-left: 1px solid var(--border); margin-left: 6px; margin-top: 4px; }
     .file-tree li { padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 8px; color: var(--text-muted); user-select: none; margin-bottom: 2px;}
@@ -65,6 +62,7 @@
     .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; font-weight: 500; z-index: 1000; transition: 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
     .toast.success { background: var(--success); color: white; }
     .toast.error { background: var(--danger); color: white; }
+    .toast.warn { background: #eab308; color: #000; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -94,12 +92,10 @@
       <div id="panel-explorer" class="panel hidden">
         <h3>📁 File Explorer</h3>
         <ul class="file-tree">
-          <!-- Web Dasar -->
           <li class="file active-file" data-file="index.html" onclick="app.switchFile('index.html')">📄 index.html</li>
           <li class="file" data-file="style.css" onclick="app.switchFile('style.css')">🎨 style.css</li>
           <li class="file" data-file="script.js" onclick="app.switchFile('script.js')">📜 script.js</li>
           
-          <!-- React / Frontend -->
           <li class="folder">📂 src/
             <ul>
               <li class="file" data-file="src/App.jsx" onclick="app.switchFile('src/App.jsx')">⚛️ App.jsx</li>
@@ -107,7 +103,6 @@
             </ul>
           </li>
 
-          <!-- Server / Backend -->
           <li class="folder">📂 backend/
             <ul>
               <li class="file" data-file="server.js" onclick="app.switchFile('server.js')">🟢 server.js</li>
@@ -122,15 +117,14 @@
             <ul><li class="file" data-file="controllers/main.js" onclick="app.switchFile('controllers/main.js')">🎮 main.js</li></ul>
           </li>
 
-          <!-- Database -->
           <li class="folder">📂 prisma/
             <ul><li class="file" data-file="prisma/schema.prisma" onclick="app.switchFile('prisma/schema.prisma')">🗄️ schema.prisma</li></ul>
           </li>
           <li class="file" data-file="schema.sql" onclick="app.switchFile('schema.sql')">🗃️ schema.sql</li>
 
-          <!-- DevOps & Configs -->
           <li class="folder">📂 config & devops
             <ul>
+              <li class="file" data-file="README.md" onclick="app.switchFile('README.md')">📖 README.md</li>
               <li class="file" data-file="package.json" onclick="app.switchFile('package.json')">📦 package.json</li>
               <li class="file" data-file="package-lock.json" onclick="app.switchFile('package-lock.json')">🔒 package-lock.json</li>
               <li class="file" data-file="tsconfig.json" onclick="app.switchFile('tsconfig.json')">🟦 tsconfig.json</li>
@@ -147,7 +141,7 @@
 
       <div id="panel-ai" class="panel hidden">
         <h3>✨ Fullstack AI Agent</h3>
-        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi React SPA dan server Express lengkap dengan Dockerfile..." style="height: 100px; resize: none;"></textarea>
+        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi React SPA dan server Express..." style="height: 100px; resize: none;"></textarea>
         <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Full Project</button>
       </div>
 
@@ -158,7 +152,6 @@
         <div class="action-grid" style="margin-top: 5px;">
           <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan</button>
           <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Lihat Web</button>
-          <!-- Tambahkan Tombol Download ZIP di bawah ini -->
           <button id="btn-download" class="btn btn-purple" onclick="app.downloadZip()" style="grid-column: span 2;">Download ZIP</button>
         </div>
       </div>
@@ -205,11 +198,15 @@
         toast.className = `toast ${type}`;
         toast.innerHTML = escapeHTML(msg);
         toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 3500);
+        setTimeout(() => toast.classList.add('hidden'), 5000);
       },
       log: (msg, type = 'info') => {
         const term = document.getElementById('terminal-log');
-        const color = type === 'error' ? '#ef4444' : (type === 'warn' ? '#eab308' : '#22c55e');
+        let color = '#22c55e'; // default green
+        if (type === 'error') color = '#ef4444';
+        else if (type === 'warn') color = '#eab308';
+        else if (type === 'highlight') color = '#a855f7'; // purple for distinct messages
+        
         const timestamp = new Date().toLocaleTimeString('id-ID');
         term.innerHTML += `<br><span style="color: #64748b">[${timestamp}]</span> <span style="color: ${color}">> ${escapeHTML(msg)}</span>`;
         term.scrollTop = term.scrollHeight;
@@ -228,28 +225,9 @@
       email: '',
       activeFile: 'index.html',
       
-      // Memory Storage untuk seluruh file Fullstack
       files: {
         'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>App</title>\n</head>\n<body>\n  <h1>Welcome</h1>\n</body>\n</html>',
-        'style.css': 'body { font-family: sans-serif; background: #f4f4f5; }',
-        'script.js': 'console.log("Vanilla JS Ready");',
-        'src/App.jsx': '// Kode React akan digenerate AI di sini\nconst App = () => {\n  return <div>Halo React</div>;\n};\n// Babel standalone membutuhkan render langsung:\n// const root = ReactDOM.createRoot(document.getElementById("root"));\n// root.render(<App />);',
-        'src/main.jsx': '// Titik masuk aplikasi React',
-        'server.js': 'const express = require("express");\nconst app = express();\n\napp.get("/", (req, res) => res.send("API Ready"));\n\napp.listen(3000, () => console.log("Server running on port 3000"));',
-        'Code.gs': '// Backend khusus Google Apps Script',
-        'routes/api.js': 'const router = require("express").Router();\nmodule.exports = router;',
-        'controllers/main.js': 'exports.home = (req, res) => { res.send("Home"); };',
-        'prisma/schema.prisma': 'datasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n\ngenerator client {\n  provider = "prisma-client-js"\n}',
-        'schema.sql': 'CREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(100)\n);',
-        'package.json': '{\n  "name": "fullstack-app",\n  "version": "1.0.0",\n  "scripts": { "start": "node server.js" }\n}',
-        'package-lock.json': '{\n  "name": "fullstack-app",\n  "lockfileVersion": 3\n}',
-        'tsconfig.json': '{\n  "compilerOptions": {\n    "target": "ESNext",\n    "module": "CommonJS"\n  }\n}',
-        'vite.config.js': 'import { defineConfig } from "vite";\nexport default defineConfig({});',
-        'webpack.config.js': 'module.exports = {\n  entry: "./src/index.js"\n};',
-        'vercel.json': '{\n  "version": 2\n}',
-        'netlify.toml': '[build]\n  command = "npm run build"',
-        'Dockerfile': 'FROM node:18-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nEXPOSE 3000\nCMD ["npm", "start"]',
-        '.github/workflows/deploy.yml': 'name: Deploy\non:\n  push:\n    branches: [ main ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v3\n    - run: npm install'
+        'README.md': '# Panduan Aplikasi\n\nGenerate aplikasi via AI untuk melihat tutorial di sini.'
       },
 
       switchFile: (filename) => {
@@ -289,7 +267,7 @@
           } else throw new Error(res.message);
         } catch (err) {
           ui.toast('Gagal terhubung', 'error');
-          ui.log(`Network/CORS Error: Pastikan URL GAS benar dan di set 'Anyone'.`, 'error');
+          ui.log(`Network/CORS Error: Pastikan URL GAS benar.`, 'error');
         } finally {
           ui.reset('btn-auth');
         }
@@ -321,44 +299,34 @@
         const id = document.getElementById('input-project').value.trim();
         if (!id) return ui.toast('Tentukan Project ID dan simpan terlebih dahulu', 'error');
         
-        ui.log(`Menjalankan Engine Preview. Jika file React terdeteksi, Babel akan di-inject...`, 'warn');
-        ui.log(`(Perhatian: File Backend seperti server.js atau Dockerfile tidak dapat dijalankan di web browser, silakan dicopy untuk dijalankan secara lokal)`);
+        ui.log(`Menjalankan Engine Preview untuk Web Browser...`, 'warn');
         window.open(`${GAS_URL}?id=${id}`, '_blank');
       },
 
-      // Tambahkan Logika Fungsi Download ZIP di bawah ini
       downloadZip: async () => {
         const projectName = document.getElementById('input-project').value.trim() || 'nexus-project';
-        ui.log(`Menyiapkan file ZIP untuk ${projectName}...`, 'info');
+        ui.log(`Membungkus file ZIP untuk ${projectName}...`, 'info');
         
         try {
           const zip = new JSZip();
-          
-          // Memasukkan seluruh file di memori (app.files) ke dalam ZIP
           for (const [filename, content] of Object.entries(app.files)) {
             zip.file(filename, content);
           }
-          
-          // Membangun file ZIP
           const content = await zip.generateAsync({ type: "blob" });
           
-          // Membuat link download otomatis
           const url = URL.createObjectURL(content);
           const a = document.createElement('a');
           a.href = url;
           a.download = `${projectName}.zip`;
           document.body.appendChild(a);
           a.click();
-          
-          // Membersihkan memori browser setelah download
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           
           ui.toast('Project berhasil didownload!', 'success');
-          ui.log(`File ${projectName}.zip berhasil didownload.`, 'success');
+          ui.log(`File ${projectName}.zip berhasil diunduh ke komputer Anda.`, 'success');
         } catch (err) {
           ui.toast('Gagal membuat ZIP', 'error');
-          ui.log(`Zip Error: ${err.message}`, 'error');
         }
       },
 
@@ -367,7 +335,7 @@
         if (!promptInput) return ui.toast('Masukkan instruksi untuk AI.', 'error');
         
         ui.loading('btn-ai', 'AI Berpikir...');
-        ui.log('Menginstruksikan AI untuk membangun arsitektur Fullstack...', 'info');
+        ui.log('Menginstruksikan AI untuk membangun arsitektur dan tutorial...', 'info');
         
         try {
           const response = await fetch(GAS_URL, {
@@ -380,27 +348,37 @@
           
           if (res.status === 'success') {
             try {
-              // Parsing output multi-file dari AI
               const generatedFiles = JSON.parse(res.data.answer);
               let count = 0;
               
               for (const [filename, content] of Object.entries(generatedFiles)) {
-                // Memasukkan ke masing-masing state file di memory
                 app.files[filename] = content;
-                ui.log(`File di-generate: ${filename}`, 'success');
                 count++;
               }
               
-              document.getElementById('input-code').value = app.files[app.activeFile] || "";
               ui.toast(`${count} file berhasil di-build!`, 'success');
               
+              // TAMPILAN NOTIFIKASI TERMINAL YANG MENCOLOK
+              ui.log('------------------------------------------------', 'highlight');
+              ui.log('✅ PROSES BUILD SELESAI 100%', 'success');
+              ui.log('👉 Klik "Download ZIP" untuk menyimpan ke komputer Anda.', 'warn');
+              ui.log('👉 Panduan cara pakainya sedang dibuka otomatis...', 'warn');
+              ui.log('------------------------------------------------', 'highlight');
+
+              // AUTO-SWITCH KE FILE TUTORIAL (README.md)
+              if (app.files['README.md']) {
+                setTimeout(() => {
+                  app.switchFile('README.md');
+                  ui.toast('Membuka Panduan Instalasi', 'warn');
+                }, 1000);
+              } else {
+                app.switchFile(app.activeFile);
+              }
+              
             } catch (parseError) {
-              // MENCEGAH injeksi kode kotor ke index.html
-              ui.log('Gagal memproses JSON. AI membalas dengan format yang salah (Sintaks Error).', 'error');
-              ui.toast('Gagal memisahkan file. Silakan klik Generate lagi.', 'error');
-              console.error("Raw AI Output:", res.data.answer);
+              ui.log('AI gagal merespons dengan format JSON yang valid.', 'error');
+              ui.toast('Gagal memisahkan file. Coba Generate ulang.', 'error');
             }
-            
             document.getElementById('input-prompt').value = '';
           } else {
             throw new Error(res.message);

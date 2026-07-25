@@ -565,17 +565,27 @@ ${mainCode}
       // Pengurai JSON AI Ekstrem - Anti Gagal
       parseAIPayload: (rawStr) => {
         let cleaned = rawStr.trim();
-        // Buang jubah markdown jika ada
+        // 1. Buang jubah markdown jika ada
         cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
         
-        // Cari kurung JSON terluar
+        // 2. Bersihkan newline mentah yang merusak JSON
+        cleaned = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); 
+        
+        // 3. Cari kurung JSON terluar
         const first = cleaned.indexOf('{');
         const last = cleaned.lastIndexOf('}');
         if (first !== -1 && last !== -1 && last > first) {
             cleaned = cleaned.substring(first, last + 1);
         }
         
-        return JSON.parse(cleaned); // Akan terlempar ke catch blok utama jika masih gagal
+        try {
+            return JSON.parse(cleaned);
+        } catch (e) {
+            // 4. Recovery tingkat lanjut jika masih gagal: escape karakter petik dalam string
+            // Kita coba perbaiki petik yang tidak ter-escape secara manual di sini
+            console.error("JSON Parse Error, mencoba perbaikan manual...");
+            return JSON.parse(cleaned.replace(/([^\\])"/g, '$1\\"')); 
+        }
       },
 
       askGemini: async () => {

@@ -147,7 +147,7 @@
 
       <div id="panel-ai" class="panel hidden">
         <h3>✨ Fullstack AI Agent</h3>
-        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi React SPA dan server Express..." style="height: 100px; resize: none;"></textarea>
+        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi React SPA..." style="height: 100px; resize: none;"></textarea>
         <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Full Project</button>
       </div>
 
@@ -215,20 +215,20 @@
       },
       toast: (msg, type = 'success') => {
         const toast = document.getElementById('toast');
-        toast.className = `toast ${type}`;
+        toast.className = 'toast ' + type;
         toast.innerHTML = escapeHTML(msg);
         toast.classList.remove('hidden');
         setTimeout(() => toast.classList.add('hidden'), 5000);
       },
       log: (msg, type = 'info') => {
         const term = document.getElementById('terminal-log');
-        let color = '#22c55e'; // default green
+        let color = '#22c55e';
         if (type === 'error') color = '#ef4444';
         else if (type === 'warn') color = '#eab308';
-        else if (type === 'highlight') color = '#a855f7'; // purple for distinct messages
+        else if (type === 'highlight') color = '#a855f7';
         
         const timestamp = new Date().toLocaleTimeString('id-ID');
-        term.innerHTML += `<br><span style="color: #64748b">[${timestamp}]</span> <span style="color: ${color}">> ${escapeHTML(msg)}</span>`;
+        term.innerHTML += '<br><span style="color: #64748b">[' + timestamp + ']</span> <span style="color: ' + color + '">> ' + escapeHTML(msg) + '</span>';
         term.scrollTop = term.scrollHeight;
       }
     };
@@ -259,7 +259,7 @@
         document.getElementById('active-tab-name').innerText = filename;
         
         document.querySelectorAll('.file-tree .file').forEach(el => el.classList.remove('active-file'));
-        const activeEl = document.querySelector(`.file-tree .file[data-file="${filename}"]`);
+        const activeEl = document.querySelector('.file-tree .file[data-file="' + filename + '"]');
         if (activeEl) activeEl.classList.add('active-file');
       },
 
@@ -284,82 +284,56 @@
         clearTimeout(app.previewTimeout);
         app.previewTimeout = setTimeout(() => {
           app.refreshPreview();
-        }, 800); // 0.8 detik delay auto-refresh agar tidak lag saat mengetik
+        }, 800);
       },
 
       refreshPreview: () => {
         if (!app.previewOpen) return;
         const frame = document.getElementById('preview-frame');
-        
         let htmlContent = '';
         
-        // Jika sedang mem-build React
         if (app.files['src/App.jsx'] || app.files['App.jsx'] || app.files['src/main.jsx']) {
           
-          /* ========================================================
-             SMART REACT COMBINER: 
-             Menggabungkan semua file .jsx dan membersihkan import lokal 
-             agar bisa jalan murni di Web Browser tanpa Node.js
-             ======================================================== */
           let allComponentsCode = '';
           let mainCode = app.files['src/main.jsx'] || app.files['main.jsx'] || '';
           
           for (const [filename, content] of Object.entries(app.files)) {
-            // Ambil semua file komponen JSX kecuali file utama (main.jsx)
             if (filename.endsWith('.jsx') && !filename.includes('main.jsx')) {
               let cleanContent = content;
-              // 1. Hapus import ke file lokal (contoh: import Header from './Header')
               cleanContent = cleanContent.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
-              // 2. Hapus export default agar tidak bentrok saat digabung
               cleanContent = cleanContent.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, '');
               
-              allComponentsCode += `\n/* File: ${filename} */\n${cleanContent}\n`;
+              // MENGGUNAKAN PENGGABUNGAN STRING (+) ANTI-BUG
+              allComponentsCode += '\n/* File: ' + filename + ' */\n' + cleanContent + '\n';
             }
           }
           
-          // Bersihkan file utama (main.jsx) dari import lokal juga
           mainCode = mainCode.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
 
-          htmlContent = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              
-              <!-- Import Map: Membantu browser mengambil library React dari server ESM -->
-              <script type="importmap">
-                {
-                  "imports": {
-                    "react": "https://esm.sh/react@18.2.0",
-                    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-                    "lucide-react": "https://esm.sh/lucide-react"
-                  }
-                }
-              </script>
-              <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-              <style>${app.files['style.css'] || ''}</style>
-            </head>
-            <body>
-              <div id="root"></div>
-              <script type="text/babel" data-type="module">
-                // 1. Suntikkan semua file komponen di atas
-                ${allComponentsCode}
-                
-                // 2. Suntikkan file eksekusi (main.jsx) di bawah
-                ${mainCode}
-              <\/script>
-            </body>
-            </html>
-          `;
+          // PERBAIKAN BUG: Memisahkan '</' + 'script>' agar Browser tidak salah paham!
+          htmlContent = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+            '<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+            '<script type="importmap">\n{"imports": {"react": "https://esm.sh/react@18.2.0","react-dom/client": "https://esm.sh/react-dom@18.2.0/client","lucide-react": "https://esm.sh/lucide-react"}}\n</' + 'script>\n' +
+            '<script src="https://unpkg.com/@babel/standalone/babel.min.js"></' + 'script>\n' +
+            '<style>' + (app.files['style.css'] || '') + '</style>\n' +
+            '</head>\n<body>\n' +
+            '<div id="root"></div>\n' +
+            '<script type="text/babel" data-type="module">\n' +
+            'try {\n' +
+            allComponentsCode + '\n' +
+            mainCode + '\n' +
+            '} catch (err) {\n' +
+            '  document.getElementById("root").innerHTML = "<div style=\'color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;\'><h3>🚨 React Syntax Error</h3><p>" + err.message + "</p></div>";\n' +
+            '}\n' +
+            '</' + 'script>\n</body>\n</html>';
+            
         } else {
-          // Jika aplikasi HTML/CSS/JS murni
           htmlContent = app.files['index.html'] || '<h1>File index.html tidak ditemukan</h1>';
           if (app.files['style.css']) {
-            htmlContent = htmlContent.replace('</head>', `<style>${app.files['style.css']}</style></head>`);
+            htmlContent = htmlContent.replace('</head>', '<style>' + app.files['style.css'] + '</style></head>');
           }
           if (app.files['script.js']) {
-            htmlContent = htmlContent.replace('</body>', `<script>${app.files['script.js']}<\/script></body>`);
+            htmlContent = htmlContent.replace('</body>', '<script>' + app.files['script.js'] + '</' + 'script></body>');
           }
         }
 
@@ -394,7 +368,7 @@
           } else throw new Error(res.message);
         } catch (err) {
           ui.toast('Gagal terhubung', 'error');
-          ui.log(`Network/CORS Error: Pastikan URL GAS benar.`, 'error');
+          ui.log('Network Error: Pastikan URL GAS benar dan otorisasi sudah ANYONE.', 'error');
         } finally {
           ui.reset('btn-auth');
         }
@@ -426,13 +400,13 @@
         const id = document.getElementById('input-project').value.trim();
         if (!id) return ui.toast('Tentukan Project ID dan simpan terlebih dahulu', 'error');
         
-        ui.log(`Menjalankan Engine Preview untuk Web Browser...`, 'warn');
-        window.open(`${GAS_URL}?id=${id}`, '_blank');
+        ui.log('Menjalankan Engine Preview untuk Web Browser...', 'warn');
+        window.open(GAS_URL + '?id=' + id, '_blank');
       },
 
       downloadZip: async () => {
         const projectName = document.getElementById('input-project').value.trim() || 'nexus-project';
-        ui.log(`Membungkus file ZIP untuk ${projectName}...`, 'info');
+        ui.log('Membungkus file ZIP untuk ' + projectName + '...', 'info');
         
         try {
           const zip = new JSZip();
@@ -444,14 +418,14 @@
           const url = URL.createObjectURL(content);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `${projectName}.zip`;
+          a.download = projectName + '.zip';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           
           ui.toast('Project berhasil didownload!', 'success');
-          ui.log(`File ${projectName}.zip berhasil diunduh ke komputer Anda.`, 'success');
+          ui.log('File ' + projectName + '.zip berhasil diunduh.', 'success');
         } catch (err) {
           ui.toast('Gagal membuat ZIP', 'error');
         }
@@ -462,7 +436,7 @@
         if (!promptInput) return ui.toast('Masukkan instruksi untuk AI.', 'error');
         
         ui.loading('btn-ai', 'AI Berpikir...');
-        ui.log('Menginstruksikan AI untuk membangun arsitektur dan tutorial...', 'info');
+        ui.log('Menginstruksikan AI untuk membangun arsitektur...', 'info');
         
         try {
           const response = await fetch(GAS_URL, {
@@ -483,23 +457,23 @@
                 count++;
               }
               
-              ui.toast(`${count} file berhasil di-build!`, 'success');
+              ui.toast(count + ' file berhasil di-build!', 'success');
               
-              // TAMPILAN NOTIFIKASI TERMINAL YANG MENCOLOK
               ui.log('------------------------------------------------', 'highlight');
               ui.log('✅ PROSES BUILD SELESAI 100%', 'success');
               ui.log('👉 Klik "Download ZIP" untuk menyimpan ke komputer Anda.', 'warn');
               ui.log('👉 Panduan cara pakainya sedang dibuka otomatis...', 'warn');
               ui.log('------------------------------------------------', 'highlight');
 
-              // AUTO-SWITCH KE FILE TUTORIAL (README.md)
               if (app.files['README.md']) {
                 setTimeout(() => {
                   app.switchFile('README.md');
                   ui.toast('Membuka Panduan Instalasi', 'warn');
+                  app.refreshPreview();
                 }, 1000);
               } else {
                 app.switchFile(app.activeFile);
+                app.refreshPreview();
               }
               
             } catch (parseError) {
@@ -512,7 +486,7 @@
           }
         } catch (err) {
           ui.toast('Gagal memproses AI', 'error');
-          ui.log(`AI Error: ${err.message}`, 'error');
+          ui.log('AI Error: ' + err.message, 'error');
         } finally {
           ui.reset('btn-ai');
         }

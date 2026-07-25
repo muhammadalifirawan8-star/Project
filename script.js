@@ -1,45 +1,59 @@
 // [WAJIB GANTI]: Masukkan URL Web App GAS Anda di bawah ini
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOOAcB8UPapZ_OIl2QFJJwKSNIonwY1h5QVevADIp-NXyh08yxYsWuG-WddN2GmPp0/exec';
 
-// Keamanan: Mencegah injeksi XSS (Cross-Site Scripting)
+// Keamanan: Sanitasi HTML untuk Terminal & Notifikasi
 const escapeHTML = (str) => {
   return String(str).replace(/[&<>'"]/g, 
-    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
-  );
-};
-
-// Modul User Interface (Notif, Loading, Terminal)
-const ui = {
-  loading: (id, text) => {
-    const btn = document.getElementById(id);
-    btn.dataset.original = btn.innerText;
-    btn.innerText = text;
-    btn.disabled = true;
-  },
-  reset: (id) => {
-    const btn = document.getElementById(id);
-    btn.innerText = btn.dataset.original;
-    btn.disabled = false;
-  },
-  toast: (msg, type = 'success') => {
-    const toast = document.getElementById('toast');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = escapeHTML(msg);
-    toast.classList.remove('hidden');
-    setTimeout(() => toast.classList.add('hidden'), 3500);
-  },
-  log: (msg, type = 'info') => {
-    const term = document.getElementById('terminal-log');
-    const color = type === 'error' ? '#ef4444' : '#22c55e';
-    const timestamp = new Date().toLocaleTimeString('id-ID');
-    term.innerHTML += `<br><span style="color: #64748b">[${timestamp}]</span> <span style="color: ${color}">> ${escapeHTML(msg)}</span>`;
     term.scrollTop = term.scrollHeight; // Auto-scroll ke bawah
   }
 };
 
+// Event Listener agar setiap ketikan otomatis tersimpan di state
+document.addEventListener('DOMContentLoaded', () => {
+  const codeEditor = document.getElementById('input-code');
+  codeEditor.addEventListener('input', (e) => {
+    app.files[app.activeFile] = e.target.value;
+  });
+});
+
 // Modul Utama Alur Kerja
 const app = {
   email: '',
+  activeFile: 'index.html',
+  
+  // State manajemen multi-file virtual memory
+  files: {
+    'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>Nexus App</title>\n</head>\n<body>\n  <h1>Halo Dunia!</h1>\n</body>\n</html>',
+    'style.css': '/* Tambahkan CSS Anda di sini */\nbody {\n  background: #f0f0f0;\n  font-family: sans-serif;\n}',
+    'script.js': '// Tambahkan JavaScript Anda di sini\nconsole.log("App Ready");',
+    '.gitignore': 'node_modules\ndist\n.env',
+    '.env.example': 'VITE_API_KEY=your_api_key_here',
+    'package.json': '{\n  "name": "nexus-pro-app",\n  "version": "1.0.0",\n  "scripts": { "dev": "vite" }\n}',
+    'vite.config.js': 'import { defineConfig } from "vite";\nexport default defineConfig({});',
+    'vercel.json': '{\n  "version": 2\n}',
+    'README.md': '# Project Baru\n\nDibuat dengan Nexus IDE Serverless.',
+    'public/favicon.ico': '<!-- icon binary data -->',
+    'public/manifest.json': '{\n  "name": "Nexus PWA App"\n}',
+    'public/robots.txt': 'User-agent: *\nAllow: /',
+    'src/App.jsx': 'import React from "react";\n\nexport default function App() {\n  return <div>Welcome to React</div>;\n}',
+    'src/main.jsx': 'import React from "react";\nimport ReactDOM from "react-dom/client";\nimport App from "./App";\n\nReactDOM.createRoot(document.getElementById("root")).render(<App />);'
+  },
+
+  switchFile: (filename) => {
+    // 1. Simpan nama file aktif
+    app.activeFile = filename;
+    
+    // 2. Ganti konten textarea dengan isi file
+    document.getElementById('input-code').value = app.files[filename] || '';
+    document.getElementById('active-tab-name').innerText = filename;
+    
+    // 3. Perbarui gaya visual di panel Sidebar
+    document.querySelectorAll('.file-tree .file').forEach(el => el.classList.remove('active-file'));
+    const activeEl = document.querySelector(`.file-tree .file[data-file="${filename}"]`);
+    if (activeEl) activeEl.classList.add('active-file');
+    
+    ui.log(`Membuka file: ${filename}`);
+  },
   
   activate: async () => {
     const emailInput = document.getElementById('input-email').value.trim();
@@ -47,30 +61,27 @@ const app = {
 
     ui.loading('btn-auth', 'Memproses...');
     try {
-      const response = await fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'activateAccount', email: emailInput })
-      });
-      const res = await response.json();
+      const res = await callServer({ action: 'activateAccount', email: emailInput });
       
       if (res.status === 'success') {
         app.email = emailInput;
         document.getElementById('panel-auth').classList.add('hidden');
+        document.getElementById('panel-explorer').classList.remove('hidden');
         document.getElementById('panel-config').classList.remove('hidden');
         document.getElementById('panel-ai').classList.remove('hidden');
         
         const badge = document.getElementById('user-badge');
         badge.innerText = 'Online';
-        badge.classList.add('active');
-        
-        ui.toast(res.data.message);
         ui.log('Autentikasi berhasil. Workspace siap.');
+        
+        // Memuat konten index.html secara default
+        app.switchFile('index.html');
       } else {
         throw new Error(res.message);
       }
     } catch (err) {
-      ui.toast('Gagal terhubung ke server', 'error');
-      ui.log(`Koneksi ditolak: ${err.message}`, 'error');
+      ui.toast('Gagal autentikasi', 'error');
+      ui.log(`Gagal: ${err.message}`, 'error');
     } finally {
       ui.reset('btn-auth');
     }
@@ -78,29 +89,32 @@ const app = {
 
   save: async () => {
     const id = document.getElementById('input-project').value.trim();
-    const code = document.getElementById('input-code').value;
     
-    if (!id || !code) return ui.toast('Project ID dan Kode harus diisi', 'error');
+    // Menyimpan SELURUH FILE dalam format JSON ke server
+    const codePayload = JSON.stringify(app.files);
+    
+    if (!id) return ui.toast('Project ID harus diisi', 'error');
 
     ui.loading('btn-save', 'Menyimpan...');
-    ui.log('Mengompilasi data ke Cloud Serverless...');
+    ui.log('Mengompilasi seluruh file ke Cloud Serverless...');
     
     try {
       const response = await fetch(GAS_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'saveProject', projectId: id, email: app.email, code: code })
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+        body: JSON.stringify({ action: 'saveProject', projectId: id, email: app.email, code: codePayload })
       });
-      const res = await response.json();
       
       if (res.status === 'success') {
         ui.toast('Berhasil disimpan');
-        ui.log(`Project [${id}] tersimpan di Cloud.`);
+        ui.log(`Project [${id}] berhasil disinkronisasi ke Cloud.`);
       } else {
         throw new Error(res.message);
       }
     } catch (err) {
-      ui.toast('Gagal menyimpan project', 'error');
-      ui.log(`Gagal menyimpan: ${err.message}`, 'error');
+      ui.toast('Gagal menyimpan', 'error');
+      ui.log(`Save Error: ${err.message}`, 'error');
     } finally {
       ui.reset('btn-save');
     }
@@ -108,41 +122,38 @@ const app = {
 
   publish: () => {
     const id = document.getElementById('input-project').value.trim();
-    if (!id) return ui.toast('Silakan simpan project terlebih dahulu', 'error');
+    if (!id) return ui.toast('Tentukan Project ID dan simpan terlebih dahulu', 'error');
     
     const publicUrl = `${GAS_URL}?id=${id}`;
-    ui.log(`Menyiapkan server publik...`);
-    ui.log(`Membuka target: ${publicUrl}`);
-    ui.toast('Menjalankan Web Browser...', 'success');
+    ui.log(`Memulai server publik di tab baru...`);
     window.open(publicUrl, '_blank');
   },
 
   askGemini: async () => {
     const promptInput = document.getElementById('input-prompt').value.trim();
-    if (!promptInput) return ui.toast('Masukkan instruksi untuk AI.', 'error');
+    if (!promptInput) return ui.toast('Masukkan instruksi untuk AI terlebih dahulu.', 'error');
     
     ui.loading('btn-ai', 'AI Berpikir...');
-    ui.log('Mengirim instruksi ke Gemini AI...', 'info');
+    ui.log('Memanggil Gemini AI (Ini mungkin memakan waktu beberapa detik)...', 'info');
     
     try {
-      const response = await fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'askGemini', prompt: promptInput })
-      });
-      const res = await response.json();
+      const res = await callServer({ action: 'askGemini', prompt: promptInput });
       
       if (res.status === 'success') {
         const codeEditor = document.getElementById('input-code');
-        // Inject hasil ke editor (aman karena tidak langsung render DOM)
-        codeEditor.value += `\n\n<!-- Generated by Gemini AI -->\n${res.data.answer}`;
+        // Inject hasil ke file yang sedang AKTIP saat ini
+        codeEditor.value += `\n\n/* Generated by Gemini AI */\n${res.data.answer}`;
+        app.files[app.activeFile] = codeEditor.value; // Simpan ke state
+        
         ui.toast('Kode berhasil di-generate!', 'success');
-        ui.log('AI selesai. Kode telah ditambahkan ke editor.', 'success');
+        ui.toast('Kode berhasil dibuat!', 'success');
+        ui.log('AI selesai bekerja. Kode disuntikkan ke Editor.', 'success');
         document.getElementById('input-prompt').value = '';
       } else {
         throw new Error(res.message);
       }
     } catch (err) {
-      ui.toast('Gagal menghubungi AI', 'error');
+      ui.toast('AI gagal merespons', 'error');
       ui.log(`AI Error: ${err.message}`, 'error');
     } finally {
       ui.reset('btn-ai');

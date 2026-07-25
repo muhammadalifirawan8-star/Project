@@ -1,5 +1,5 @@
 // [WAJIB GANTI]: Masukkan URL Web App GAS Anda di bawah ini
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOOAcB8UPapZ_OIl2QFJJwKSNIonwY1h5QVevADIp-NXyh08yxYsWuG-WddN2GmPp0/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz9eOBCKzzKs2hRp7sj3M8GOUqJpJpv_PtQj-FR4OmPndEJLjzkxnl3r0udBYQCauJH/exec';
 
 // Keamanan: Sanitasi HTML untuk Terminal & Notifikasi
 const escapeHTML = (str) => {

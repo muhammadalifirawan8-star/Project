@@ -3,47 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Web Builder Workspace</title>
+  <title>SaaS Web Builder & IDE</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="loader" class="hidden"><div class="spinner"></div><p id="loader-text">Memproses...</p></div>
 
-  <header>
-    <div class="logo">🚀 WebBuilder Workspace</div>
-    <div class="account-status" id="accountStatus">Status: Belum Aktif (Menunggu Pembayaran)</div>
-  </header>
+  <div class="dashboard">
+    <header>
+      <h1>Web Builder Workspace</h1>
+      <div id="status-badge" class="badge">Status: Guest</div>
+    </header>
 
-  <main class="workspace">
-    <!-- Sidebar: project-builder.js concept -->
-    <aside class="sidebar">
-      <h3>File Manager</h3>
-      <ul id="fileList">
-        <li class="active" onclick="ide.switchFile('html')">index.html</li>
-        <li onclick="ide.switchFile('css')">style.css</li>
-        <li onclick="ide.switchFile('js')">script.js</li>
-      </ul>
-      <button class="btn btn-activate" onclick="account.activate()">Simulasi Bayar & Aktivasi</button>
-    </aside>
+    <!-- Notifikasi Global -->
+    <div id="notification" class="hidden"></div>
 
-    <!-- IDE Area: browser-ide.js concept -->
-    <section class="editor-area">
-      <div class="toolbar">
-        <span id="currentFileLabel">index.html</span>
-        <button class="btn btn-run" onclick="ide.runProject()">▶ Run Preview</button>
-        <button class="btn btn-publish" onclick="publisher.publish()">☁ Publish (publish.sh)</button>
-      </div>
-      <textarea id="codeEditor" spellcheck="false" placeholder="Tulis kode Anda di sini..."></textarea>
-      
-      <!-- Log Panel -->
-      <div class="log-panel" id="logPanel">Console Log siap...</div>
-    </section>
+    <main>
+      <!-- Panel Aktivasi (akun.json) -->
+      <section id="panel-activation" class="card">
+        <h2>Aktivasi Instan</h2>
+        <p>Konfirmasi pembayaran dan langsung gunakan workspace.</p>
+        <input type="email" id="email-input" placeholder="Masukkan Email Anda">
+        <button id="btn-activate" onclick="appModule.activateAccount()">Aktivasi Sekarang</button>
+      </section>
 
-    <!-- Preview Panel -->
-    <section class="preview-area">
-      <iframe id="previewFrame" title="Project Preview"></iframe>
-    </section>
-  </main>
+      <!-- Panel IDE & Builder (project-builder.js & browser-ide.js) -->
+      <section id="panel-ide" class="card hidden">
+        <h2>Browser IDE</h2>
+        <input type="text" id="project-id" placeholder="Nama Project (ex: landing-page-1)">
+        <textarea id="code-editor" placeholder="<!-- Tulis kode HTML/JS Anda di sini -->"></textarea>
+        
+        <div class="action-group">
+          <button id="btn-save" class="btn-primary" onclick="appModule.saveProject()">Simpan Perubahan</button>
+          <button id="btn-publish" class="btn-secondary" onclick="appModule.publishProject()">Publish Project</button>
+        </div>
+        
+        <div id="log-console" class="console">
+          > Menunggu perintah...
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script src="script.js"></script>
 </body>

@@ -125,18 +125,6 @@
               <li class="file" data-file="Code.gs" onclick="app.switchFile('Code.gs')">🟨 Code.gs</li>
             </ul>
           </li>
-          
-          <li class="folder">📂 routes/
-            <ul><li class="file" data-file="routes/api.js" onclick="app.switchFile('routes/api.js')">🛣️ api.js</li></ul>
-          </li>
-          <li class="folder">📂 controllers/
-            <ul><li class="file" data-file="controllers/main.js" onclick="app.switchFile('controllers/main.js')">🎮 main.js</li></ul>
-          </li>
-
-          <li class="folder">📂 prisma/
-            <ul><li class="file" data-file="prisma/schema.prisma" onclick="app.switchFile('prisma/schema.prisma')">🗄️ schema.prisma</li></ul>
-          </li>
-          <li class="file" data-file="schema.sql" onclick="app.switchFile('schema.sql')">🗃️ schema.sql</li>
 
           <li class="folder">📂 config & devops
             <ul>
@@ -160,7 +148,6 @@
         <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi toko online elegan..." style="height: 70px; resize: none;"></textarea>
         
         <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">✨ Generate Full Project</button>
-        <!-- Fitur Baru: AI Audit & Auto-Fix -->
         <button id="btn-audit" class="btn btn-warning" onclick="app.auditCode()" style="margin-top: 2px;">🛠️ AI Audit & Perbaiki Bug</button>
       </div>
 
@@ -351,7 +338,6 @@
             if (filename.endsWith('.jsx') && !filename.includes('main.jsx')) {
               let cleanContent = extractImports(content);
               
-              // Pembersih kuat pencegah duplicate export yang memicu crash Babel
               cleanContent = cleanContent.replace(/export\s+default\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+default\s+const/g, 'const');
@@ -367,11 +353,9 @@
           
           const uniqueImports = [...new Set(importsArray)].join('\n');
           
-          // Anti-Bug: Split script tags untuk mencegah browser tertipu menutup script IDE utama
           const scriptStart = '<' + 'script type="text/babel" data-type="module">';
           const scriptEnd = '<' + '/script>';
 
-          // Merakit HTML Murni, menyuntik Tailwind CDN
           htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -398,13 +382,11 @@
   <div id="root"></div>
   
   ${scriptStart}
-// Bagian 1: Inject Top-Level Imports ES6
+// Top-Level Imports ES6
 ${uniqueImports}
 
-// Bagian 2: Semua Komponen
 ${allComponentsCode}
 
-// Bagian 3: File Main/Entry point
 ${mainCode}
   ${scriptEnd}
 </body>
@@ -510,7 +492,7 @@ ${mainCode}
         document.getElementById('modal-deploy').classList.add('hidden');
         ui.log('🚀 MEMULAI DEPLOYMENT KE VERCEL...', 'highlight');
 
-        app.autoFixReactFiles(); // Trigger Linter sebelum dikirim
+        app.autoFixReactFiles(); 
         if (!token) return ui.log('Error: Token Vercel kosong.', 'error');
 
         let vercelFiles = [];
@@ -580,6 +562,22 @@ ${mainCode}
         }
       },
 
+      // Pengurai JSON AI Ekstrem - Anti Gagal
+      parseAIPayload: (rawStr) => {
+        let cleaned = rawStr.trim();
+        // Buang jubah markdown jika ada
+        cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+        
+        // Cari kurung JSON terluar
+        const first = cleaned.indexOf('{');
+        const last = cleaned.lastIndexOf('}');
+        if (first !== -1 && last !== -1 && last > first) {
+            cleaned = cleaned.substring(first, last + 1);
+        }
+        
+        return JSON.parse(cleaned); // Akan terlempar ke catch blok utama jika masih gagal
+      },
+
       askGemini: async () => {
         const promptInput = document.getElementById('input-prompt').value.trim();
         const templateInput = document.getElementById('ai-template').value;
@@ -599,16 +597,7 @@ ${mainCode}
           
           if (res.status === 'success') {
             try {
-              let rawAnswer = res.data.answer.trim();
-              rawAnswer = rawAnswer.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-              
-              const jsonStart = rawAnswer.indexOf('{');
-              const jsonEnd = rawAnswer.lastIndexOf('}');
-              if (jsonStart !== -1 && jsonEnd !== -1) {
-                rawAnswer = rawAnswer.substring(jsonStart, jsonEnd + 1);
-              }
-              
-              const generatedFiles = JSON.parse(rawAnswer);
+              const generatedFiles = app.parseAIPayload(res.data.answer);
 
               for (const [filename, content] of Object.entries(generatedFiles)) {
                 app.files[filename] = content;
@@ -624,11 +613,12 @@ ${mainCode}
                 app.switchFile(app.activeFile); app.refreshPreview();
               }
             } catch (parseError) {
-              ui.log('AI membalas dengan format yang tidak bisa dibaca, coba lagi.', 'error');
+              ui.log(`AI membalas dengan format yang tidak bisa dibaca. (Detail: ${parseError.message})`, 'error');
+              ui.toast('Gagal mengurai respons AI', 'error');
             }
             document.getElementById('input-prompt').value = '';
           } else { throw new Error(res.message); }
-        } catch (err) { ui.toast('Gagal memproses AI', 'error'); } finally { ui.reset('btn-ai'); }
+        } catch (err) { ui.toast('Gagal terhubung ke AI', 'error'); } finally { ui.reset('btn-ai'); }
       },
 
       auditCode: async () => {
@@ -647,23 +637,13 @@ ${mainCode}
           
           if (res.status === 'success') {
             try {
-              let rawAnswer = res.data.answer.trim();
-              rawAnswer = rawAnswer.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-              
-              const jsonStart = rawAnswer.indexOf('{');
-              const jsonEnd = rawAnswer.lastIndexOf('}');
-              if (jsonStart !== -1 && jsonEnd !== -1) {
-                rawAnswer = rawAnswer.substring(jsonStart, jsonEnd + 1);
-              }
-              
-              const fixedFiles = JSON.parse(rawAnswer);
+              const fixedFiles = app.parseAIPayload(res.data.answer);
 
-              // Update state file dengan kode yang sudah dibenarkan AI
               for (const [filename, content] of Object.entries(fixedFiles)) {
                 app.files[filename] = content;
               }
               
-              app.autoFixReactFiles(); // Jalankan linter bawaan sekali lagi
+              app.autoFixReactFiles();
               app.switchFile(app.activeFile);
               app.refreshPreview();
               
@@ -671,7 +651,8 @@ ${mainCode}
               ui.log('✅ AI Debugger berhasil menyelesaikan masalah. Aplikasi sekarang bersih.', 'success');
 
             } catch (parseError) {
-              ui.log('Gagal membaca respons perbaikan dari AI.', 'error');
+              ui.log(`Gagal membaca respons perbaikan dari AI. (Detail: ${parseError.message})`, 'error');
+              ui.toast('Gagal mengurai Audit AI', 'error');
             }
           } else { throw new Error(res.message); }
         } catch (err) { 

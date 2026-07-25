@@ -142,12 +142,8 @@
             <ul>
               <li class="file" data-file="README.md" onclick="app.switchFile('README.md')">📖 README.md</li>
               <li class="file" data-file="package.json" onclick="app.switchFile('package.json')">📦 package.json</li>
-              <li class="file" data-file="package-lock.json" onclick="app.switchFile('package-lock.json')">🔒 package-lock.json</li>
-              <li class="file" data-file="tsconfig.json" onclick="app.switchFile('tsconfig.json')">🟦 tsconfig.json</li>
               <li class="file" data-file="vite.config.js" onclick="app.switchFile('vite.config.js')">⚡ vite.config.js</li>
               <li class="file" data-file="vercel.json" onclick="app.switchFile('vercel.json')">▲ vercel.json</li>
-              <li class="file" data-file="Dockerfile" onclick="app.switchFile('Dockerfile')">🐳 Dockerfile</li>
-              <li class="file" data-file=".github/workflows/deploy.yml" onclick="app.switchFile('.github/workflows/deploy.yml')">🚀 deploy.yml</li>
             </ul>
           </li>
         </ul>
@@ -161,7 +157,7 @@
           <option value="landing">🚀 Landing Page Web</option>
           <option value="api">⚙️ Backend REST API</option>
         </select>
-        <textarea id="input-prompt" class="input-modern" placeholder="Instruksi tambahan AI..." style="height: 70px; resize: none;"></textarea>
+        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi toko online elegan..." style="height: 70px; resize: none;"></textarea>
         <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Full Project</button>
       </div>
 
@@ -172,8 +168,7 @@
         <div class="action-grid" style="margin-top: 5px;">
           <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan</button>
           <button id="btn-history" class="btn btn-warning" onclick="app.openHistory()">⏳ Riwayat</button>
-          <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Lihat Web</button>
-          <button id="btn-deploy" class="btn btn-dark" onclick="app.openDeploy()">🚀 Vercel</button>
+          <button id="btn-deploy" class="btn btn-dark" onclick="app.openDeploy()" style="grid-column: span 2;">🚀 Deploy to Vercel</button>
           <button id="btn-download" class="btn btn-purple" onclick="app.downloadZip()" style="grid-column: span 2;">📦 Download ZIP</button>
         </div>
       </div>
@@ -183,7 +178,7 @@
       <div class="editor-header">
         <div>
           <span class="tab active" id="active-tab-name">index.html</span>
-          <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 10px;">Auto-saving diaktifkan</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 10px;">Auto-saving aktif</span>
         </div>
         <button id="btn-toggle-preview" class="btn btn-purple btn-sm" onclick="app.togglePreview()">👀 Buka Preview</button>
       </div>
@@ -224,9 +219,9 @@
         <span>🚀 Deploy to Vercel</span>
         <button class="modal-close" onclick="document.getElementById('modal-deploy').classList.add('hidden')">✖</button>
       </div>
-      <p class="desc" style="margin-bottom: 10px;">Publikasikan langsung ke Vercel CDN. Membutuhkan Vercel API Token (dapat dibuat di vercel.com/account/tokens).</p>
+      <p class="desc" style="margin-bottom: 10px;">Publikasikan langsung ke internet (Membutuhkan Vercel API Token).</p>
       <label>Vercel Personal Access Token</label>
-      <input type="password" id="input-vercel-token" class="input-modern" style="margin-bottom: 15px;" placeholder="Tinggalkan kosong jika hanya simulasi">
+      <input type="password" id="input-vercel-token" class="input-modern" style="margin-bottom: 15px;">
       <button id="btn-execute-deploy" class="btn btn-dark" style="width: 100%;" onclick="app.executeDeploy()">Mulai Deployment</button>
     </div>
   </div>
@@ -268,7 +263,6 @@
         if (type === 'error') color = '#ef4444';
         else if (type === 'warn') color = '#eab308';
         else if (type === 'highlight') color = '#a855f7';
-        
         const timestamp = new Date().toLocaleTimeString('id-ID');
         term.innerHTML += '<br><span style="color: #64748b">[' + timestamp + ']</span> <span style="color: ' + color + '">> ' + escapeHTML(msg) + '</span>';
         term.scrollTop = term.scrollHeight;
@@ -292,7 +286,7 @@
       
       files: {
         'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>App</title>\n</head>\n<body>\n  <h1>Welcome to AppCraft Fullstack</h1>\n</body>\n</html>',
-        'README.md': '# Panduan Aplikasi\n\nGenerate aplikasi via AI untuk melihat tutorial di sini.'
+        'README.md': '# Panduan Aplikasi\n\nGenerate aplikasi via AI.'
       },
 
       switchFile: (filename) => {
@@ -314,7 +308,6 @@
           container.classList.remove('hidden');
           btn.innerText = '❌ Tutup Preview';
           app.refreshPreview();
-          ui.log('Membuka Live Preview Lokal...', 'info');
         } else {
           container.classList.add('hidden');
           btn.innerText = '👀 Buka Preview';
@@ -324,9 +317,7 @@
       schedulePreviewRefresh: () => {
         if (!app.previewOpen) return;
         clearTimeout(app.previewTimeout);
-        app.previewTimeout = setTimeout(() => {
-          app.refreshPreview();
-        }, 800);
+        app.previewTimeout = setTimeout(() => { app.refreshPreview(); }, 800);
       },
 
       refreshPreview: () => {
@@ -339,61 +330,64 @@
           let mainCode = app.files['src/main.jsx'] || app.files['main.jsx'] || '';
           let importsArray = [];
           
-          // Fungsi Helper: Mencabut 'import' agar bisa diletakkan di Top Level (paling atas)
+          // ANTI-WHITE SCREEN REGEX ENGINE (Membersihkan file lokal dan memecah React)
           const extractImports = (code) => {
              let cleaned = code;
-             const importRegex = /import\s+.*?from\s+['"].*?['"];?/g;
-             const matches = code.match(importRegex);
-             if (matches) {
-               matches.forEach(m => {
-                 if (!m.includes('./') && !m.includes('../')) { // Hanya ambil import eksternal (react, dll)
-                   importsArray.push(m);
+             // 1. Hancurkan import css (menyebabkan babel error) karena css sudah dipasang via <style>
+             cleaned = cleaned.replace(/import\s+['"][^'"]+\.css['"];?/g, '');
+             
+             // 2. Ambil eksternal import
+             const importRegex = /import\s+(?:\{[^}]+\}|\* as \w+|\w+)(?:\s+from)?\s+['"]([^'"]+)['"];?/g;
+             let match;
+             while ((match = importRegex.exec(cleaned)) !== null) {
+                 if (!match[1].startsWith('.') && !match[1].startsWith('/')) {
+                     importsArray.push(match[0]);
                  }
-               });
              }
-             // Buang semua import dari dalam body
-             cleaned = cleaned.replace(importRegex, '');
+             // 3. Hapus semua baris import
+             cleaned = cleaned.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
              return cleaned;
           };
 
           for (const [filename, content] of Object.entries(app.files)) {
             if (filename.endsWith('.jsx') && !filename.includes('main.jsx')) {
               let cleanContent = extractImports(content);
-              
-              // Hapus semua jenis export secara kuat (Anti Duplicate)
+              // Bersihkan export
               cleanContent = cleanContent.replace(/export\s+default\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+function/g, 'function');
+              cleanContent = cleanContent.replace(/export\s+default\s+const/g, 'const');
               cleanContent = cleanContent.replace(/export\s+const/g, 'const');
               cleanContent = cleanContent.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, '');
-              
               allComponentsCode += '\n/* File: ' + filename + ' */\n' + cleanContent + '\n';
             }
           }
           
           mainCode = extractImports(mainCode);
           
-          // Deduplikasi Import ES6
           const uniqueImports = [...new Set(importsArray)].join('\n');
-
-          // Menghindari Bug Penutup Script di HTML String
           const scriptStart = '<' + 'script type="text/babel" data-type="module">';
-          const scriptEnd = '</' + 'script>';
+          const scriptEnd = '<' + '/script>';
 
-          // Merakit HTML Murni yang mampu menjalankan React di Browser tanpa Node.js
+          // Merakit HTML Murni, menyuntik Tailwind CDN agar UI Mewah terlihat
           htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"><` + `/script>
   <`+`script type="importmap">
-  {"imports": {"react": "https://esm.sh/react@18.2.0","react-dom/client": "https://esm.sh/react-dom@18.2.0/client","lucide-react": "https://esm.sh/lucide-react"}}
+  {"imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.292.0"
+  }}
   <`+`/script>
   <`+`script src="https://unpkg.com/@babel/standalone/babel.min.js"><`+`/script>
-  <style>${app.files['style.css'] || ''}</style>
+  <style>${app.files['index.css'] || app.files['style.css'] || ''}</style>
   <`+`script>
-    // Penangkap Error Global di React Preview
     window.addEventListener('error', function(e) {
-      document.getElementById('root').innerHTML = '<div style="color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;"><h3>🚨 Terdapat Error di React</h3><p>' + e.message + '</p></div>';
+      document.getElementById('root').innerHTML = '<div style="color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;"><h3>🚨 React Error</h3><p>' + e.message + '</p></div>';
     });
   <`+`/script>
 </head>
@@ -410,14 +404,13 @@ ${mainCode}
 </html>`;
             
         } else {
-          // Render HTML/JS Biasa (Non-React)
+          // Render HTML Biasa tapi dengan Tailwind CDN (Jika HTML)
           htmlContent = app.files['index.html'] || '<h1>File index.html tidak ditemukan</h1>';
-          if (app.files['style.css']) {
-            htmlContent = htmlContent.replace('</head>', '<style>' + app.files['style.css'] + '</style></head>');
+          if (!htmlContent.includes('tailwindcss.com')) {
+              htmlContent = htmlContent.replace('</head>', '<script src="https://cdn.tailwindcss.com"><' + '/script></head>');
           }
-          if (app.files['script.js']) {
-            htmlContent = htmlContent.replace('</body>', '<' + 'script>' + app.files['script.js'] + '</' + 'script></body>');
-          }
+          if (app.files['style.css']) htmlContent = htmlContent.replace('</head>', '<style>' + app.files['style.css'] + '</style></head>');
+          if (app.files['script.js']) htmlContent = htmlContent.replace('</body>', '<' + 'script>' + app.files['script.js'] + '<' + '/script></body>');
         }
 
         const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -437,21 +430,17 @@ ${mainCode}
             body: JSON.stringify({ action: 'activateAccount', email: emailInput })
           });
           const res = await response.json();
-          
           if (res.status === 'success') {
             app.email = emailInput;
             document.getElementById('panel-auth').classList.add('hidden');
             document.getElementById('panel-explorer').classList.remove('hidden');
             document.getElementById('panel-config').classList.remove('hidden');
             document.getElementById('panel-ai').classList.remove('hidden');
-            
             document.getElementById('user-badge').innerText = 'Online';
             document.getElementById('user-badge').classList.add('active');
-            ui.log('Workspace Fullstack Enterprise siap.');
           } else throw new Error(res.message);
         } catch (err) {
           ui.toast('Gagal terhubung', 'error');
-          ui.log('Network Error: Pastikan URL GAS benar dan otorisasi sudah ANYONE.', 'error');
         } finally {
           ui.reset('btn-auth');
         }
@@ -460,7 +449,6 @@ ${mainCode}
       save: async () => {
         const id = document.getElementById('input-project').value.trim();
         if (!id) return ui.toast('Project ID harus diisi', 'error');
-
         ui.loading('btn-save', 'Simpan...');
         try {
           const response = await fetch(GAS_URL, {
@@ -471,18 +459,12 @@ ${mainCode}
           });
           const res = await response.json();
           if (res.status === 'success') ui.toast('Versi baru tersimpan!');
-          else throw new Error(res.message);
-        } catch (err) {
-          ui.toast('Gagal menyimpan', 'error');
-        } finally {
-          ui.reset('btn-save');
-        }
+        } catch (err) { ui.toast('Gagal menyimpan', 'error'); } finally { ui.reset('btn-save'); }
       },
 
       openHistory: async () => {
         const id = document.getElementById('input-project').value.trim();
-        if (!id) return ui.toast('Isi Project ID dulu untuk melihat riwayat', 'error');
-        
+        if (!id) return ui.toast('Isi Project ID dulu', 'error');
         ui.loading('btn-history', 'Mencari...');
         try {
           const response = await fetch(GAS_URL, {
@@ -495,77 +477,36 @@ ${mainCode}
           if (res.status === 'success') {
             const listObj = document.getElementById('history-list');
             listObj.innerHTML = '';
-            if (res.data.history.length === 0) {
-              listObj.innerHTML = '<p style="color:var(--text-muted)">Belum ada riwayat penyimpanan.</p>';
-            } else {
-              res.data.history.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'history-item';
-                div.innerHTML = `
-                  <span style="font-size:0.85rem; color:var(--text-main)">🕒 ${item.timestamp}</span>
-                  <button class="btn btn-sm btn-primary" onclick="app.restoreHistory(${index})">Restore</button>
-                `;
-                listObj.appendChild(div);
-              });
-              app.tempHistory = res.data.history;
-            }
+            res.data.history.forEach((item, index) => {
+              listObj.innerHTML += `<div class="history-item"><span style="font-size:0.85rem; color:var(--text-main)">🕒 ${item.timestamp}</span><button class="btn btn-sm btn-primary" onclick="app.restoreHistory(${index})">Restore</button></div>`;
+            });
+            app.tempHistory = res.data.history;
             document.getElementById('modal-history').classList.remove('hidden');
           }
-        } catch (err) {
-          ui.toast('Gagal mengambil riwayat', 'error');
-        } finally {
-          ui.reset('btn-history');
-        }
+        } catch (err) { ui.toast('Gagal mengambil riwayat', 'error'); } finally { ui.reset('btn-history'); }
       },
 
       restoreHistory: (index) => {
         if(app.tempHistory && app.tempHistory[index]) {
-          try {
-            app.files = JSON.parse(app.tempHistory[index].code);
-            app.switchFile(app.activeFile);
-            app.refreshPreview();
-            document.getElementById('modal-history').classList.add('hidden');
-            ui.toast('Kode berhasil dikembalikan ke versi lama!', 'success');
-            ui.log('Restore system successful.', 'success');
-          } catch(e) {
-            ui.toast('Format riwayat rusak', 'error');
-          }
+          app.files = JSON.parse(app.tempHistory[index].code);
+          app.switchFile(app.activeFile);
+          app.refreshPreview();
+          document.getElementById('modal-history').classList.add('hidden');
+          ui.toast('Kode dikembalikan!', 'success');
         }
       },
 
-      publish: () => {
-        const id = document.getElementById('input-project').value.trim();
-        if (!id) return ui.toast('Tentukan Project ID dan simpan terlebih dahulu', 'error');
-        window.open(GAS_URL + '?id=' + id, '_blank');
-      },
-
-      openDeploy: () => {
-        document.getElementById('modal-deploy').classList.remove('hidden');
-      },
+      openDeploy: () => document.getElementById('modal-deploy').classList.remove('hidden'),
       
       executeDeploy: async () => {
         const token = document.getElementById('input-vercel-token').value.trim();
         const projectName = document.getElementById('input-project').value.trim() || 'appcraft-project';
         document.getElementById('modal-deploy').classList.add('hidden');
-        
-        ui.log('------------------------------------------------', 'highlight');
         ui.log('🚀 MEMULAI DEPLOYMENT KE VERCEL...', 'highlight');
 
-        // Jalankan Auto-Fix sebelum deploy untuk meminimalisir error Vercel
         app.autoFixReactFiles();
-        
-        if (!token) {
-          ui.log('Token Vercel kosong. Menjalankan simulasi Mode Offline...', 'warn');
-          setTimeout(() => ui.log('Menyiapkan Build Files...', 'info'), 1000);
-          setTimeout(() => ui.log('Running Vercel Build (Simulasi)...', 'info'), 2500);
-          setTimeout(() => {
-            ui.log('✅ Simulasi Deployment Sukses!', 'success');
-            ui.toast('Mode Simulasi Selesai', 'warn');
-          }, 4000);
-          return;
-        }
+        if (!token) return ui.log('Error: Token Vercel kosong.', 'error');
 
-        ui.log('Membungkus file untuk Vercel API...', 'info');
         let vercelFiles = [];
         for (const [filename, content] of Object.entries(app.files)) {
           vercelFiles.push({ file: filename, data: content });
@@ -574,111 +515,62 @@ ${mainCode}
         try {
           const response = await fetch('https://api.vercel.com/v13/deployments', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              name: projectName.substring(0, 52), // Limit Vercel
-              target: 'production',
-              files: vercelFiles,
-              projectSettings: { framework: null }
-            })
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: projectName.substring(0, 52), target: 'production', files: vercelFiles, projectSettings: { framework: null } })
           });
           const res = await response.json();
           if (res.error) throw new Error(res.error.message);
-          
-          ui.log(`✅ Sukses! Aplikasi Live di: https://${res.url}`, 'success');
-          ui.toast('Aplikasi berhasil dipublikasikan!', 'success');
+          ui.log(`✅ Sukses! Web Live: https://${res.url}`, 'success');
           setTimeout(() => window.open(`https://${res.url}`, '_blank'), 2000);
-        } catch (error) {
-          ui.log(`Vercel Deploy Error: ${error.message}`, 'error');
-          ui.toast('Gagal melakukan Deployment', 'error');
-        }
+        } catch (error) { ui.log(`Vercel Error: ${error.message}`, 'error'); }
       },
 
       downloadZip: async () => {
         const projectName = document.getElementById('input-project').value.trim() || 'appcraft-project';
-        ui.log('Membungkus file ZIP untuk ' + projectName + '...', 'info');
-        
         try {
           const zip = new JSZip();
-          for (const [filename, content] of Object.entries(app.files)) {
-            zip.file(filename, content);
-          }
+          for (const [filename, content] of Object.entries(app.files)) { zip.file(filename, content); }
           const content = await zip.generateAsync({ type: "blob" });
-          
           const url = URL.createObjectURL(content);
           const a = document.createElement('a');
-          a.href = url;
-          a.download = projectName + '.zip';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          
-          ui.toast('Project berhasil didownload!', 'success');
-          ui.log('File ' + projectName + '.zip berhasil diunduh.', 'success');
-        } catch (err) {
-          ui.toast('Gagal membuat ZIP', 'error');
-        }
+          a.href = url; a.download = projectName + '.zip';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+          ui.toast('ZIP Diunduh', 'success');
+        } catch (err) { ui.toast('Gagal ZIP', 'error'); }
       },
 
-      // ==========================================
-      // FITUR BARU: AUTO-FIXER (SELF-HEALING)
-      // ==========================================
       autoFixReactFiles: () => {
-        // Cek apakah ini project React dengan mendeteksi file utamanya
         const isReact = app.files['src/main.jsx'] || app.files['src/App.jsx'] || app.files['App.jsx'];
-        if (!isReact) return; // Abaikan jika ini project HTML/Vanilla biasa
-
+        if (!isReact) return;
+        
         let fixed = false;
-
-        // 1. Memperbaiki package.json (Memastikan dependensi Vite & React ada)
-        if (!app.files['package.json']) {
-          app.files['package.json'] = '{\n  "name": "appcraft-project",\n  "version": "1.0.0",\n  "type": "module"\n}';
-        }
+        if (!app.files['package.json']) app.files['package.json'] = '{\n  "name": "app",\n  "type": "module"\n}';
+        
         try {
           let pkg = JSON.parse(app.files['package.json']);
           pkg.dependencies = pkg.dependencies || {};
           pkg.devDependencies = pkg.devDependencies || {};
           
-          const reqDeps = { "react": "^18.2.0", "react-dom": "^18.2.0" };
-          const reqDevDeps = { "vite": "^5.1.4", "@vitejs/plugin-react": "^4.2.1" };
+          const reqDeps = { "react": "^18.2.0", "react-dom": "^18.2.0", "lucide-react": "^0.292.0" };
+          const reqDevDeps = { "vite": "^5.0.0", "@vitejs/plugin-react": "^4.2.1", "tailwindcss": "^3.3.0", "postcss": "^8.4.31", "autoprefixer": "^10.4.16" };
           
           for(let d in reqDeps) { if(!pkg.dependencies[d]) { pkg.dependencies[d] = reqDeps[d]; fixed = true; } }
           for(let d in reqDevDeps) { if(!pkg.devDependencies[d]) { pkg.devDependencies[d] = reqDevDeps[d]; fixed = true; } }
-          
           if(!pkg.scripts) pkg.scripts = {};
           if(!pkg.scripts.build) { pkg.scripts.build = "vite build"; fixed = true; }
           
           if (fixed) app.files['package.json'] = JSON.stringify(pkg, null, 2);
         } catch(e) {}
 
-        // 2. Memperbaiki vite.config.js (Memastikan plugin react terdaftar)
-        if (!app.files['vite.config.js'] || !app.files['vite.config.js'].includes('@vitejs/plugin-react')) {
+        if (!app.files['vite.config.js']) {
           app.files['vite.config.js'] = "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\nexport default defineConfig({\n  plugins: [react()],\n});";
-          fixed = true;
         }
-
-        // 3. Memperbaiki index.html (Membuang script JS lama dan memasukkan main.jsx)
+        
         if (app.files['index.html']) {
           let html = app.files['index.html'];
-          // Hapus tag script statis yang salah
-          if (html.includes('<script src="script.js">') || html.includes('<script src="/script.js">')) {
-            html = html.replace(/<script src="?\/?script\.js"?><\/script>/g, '');
-            fixed = true;
-          }
-          // Suntikkan tag module JSX secara aman menghindari bug tag penutup
-          if (!html.includes('src="/src/main.jsx"')) {
-            html = html.replace('</body>', '  <' + 'script type="module" src="/src/main.jsx"><' + '/script>\n</body>');
-            fixed = true;
-          }
+          if (html.includes('<script src="script.js">')) html = html.replace(/<script src="?\/?script\.js"?><\/script>/g, '');
+          if (!html.includes('src="/src/main.jsx"')) html = html.replace('</body>', '  <' + 'script type="module" src="/src/main.jsx"><' + '/script>\n</body>');
           app.files['index.html'] = html;
-        }
-
-        if (fixed) {
-          ui.log('🔧 Smart Linter: Memperbaiki dependensi React & konfigurasi Vite secara otomatis.', 'highlight');
         }
       },
 
@@ -687,8 +579,8 @@ ${mainCode}
         const templateInput = document.getElementById('ai-template').value;
         if (!promptInput && templateInput === 'bebas') return ui.toast('Masukkan instruksi untuk AI.', 'error');
         
-        ui.loading('btn-ai', 'AI Berpikir...');
-        ui.log(`Menginstruksikan AI (Mode: ${templateInput})...`, 'info');
+        ui.loading('btn-ai', 'AI Merakit UI Mewah...');
+        ui.log(`AI sedang membuat aplikasi berstandar Silicon Valley...`, 'highlight');
         
         try {
           const response = await fetch(GAS_URL, {
@@ -702,46 +594,25 @@ ${mainCode}
           if (res.status === 'success') {
             try {
               const generatedFiles = JSON.parse(res.data.answer);
-              let count = 0;
               for (const [filename, content] of Object.entries(generatedFiles)) {
                 app.files[filename] = content;
-                count++;
               }
-              ui.toast(count + ' file di-build!', 'success');
+              ui.toast('Aplikasi Profesional Selesai!', 'success');
               
-              // JALANKAN PENYEMBUHAN OTOMATIS DISINI
               app.autoFixReactFiles();
-              
-              ui.log('------------------------------------------------', 'highlight');
-              ui.log('✅ PROSES BUILD SELESAI 100%', 'success');
-              ui.log('👉 Klik "Download ZIP" untuk menyimpan atau "🚀 Vercel" untuk publikasi.', 'warn');
-              ui.log('------------------------------------------------', 'highlight');
+              ui.log('✅ BUILD SELESAI. Silakan buka Preview atau klik Deploy Vercel.', 'success');
 
-              // Auto Fokus ke file README.md (Panduan)
               if (app.files['README.md']) {
-                setTimeout(() => {
-                  app.switchFile('README.md');
-                  app.refreshPreview();
-                }, 800);
+                setTimeout(() => { app.switchFile('README.md'); app.refreshPreview(); }, 800);
               } else {
-                app.switchFile(app.activeFile);
-                app.refreshPreview();
+                app.switchFile(app.activeFile); app.refreshPreview();
               }
-              
             } catch (parseError) {
-              ui.log('AI membalas format aneh. Coba ulangi Generate.', 'error');
-              ui.toast('AI Gagal merespons JSON', 'error');
+              ui.log('AI membalas format aneh, coba lagi.', 'error');
             }
             document.getElementById('input-prompt').value = '';
-          } else {
-            throw new Error(res.message);
-          }
-        } catch (err) {
-          ui.toast('Gagal memproses AI', 'error');
-          ui.log('AI Error: ' + err.message, 'error');
-        } finally {
-          ui.reset('btn-ai');
-        }
+          } else { throw new Error(res.message); }
+        } catch (err) { ui.toast('Gagal memproses AI', 'error'); } finally { ui.reset('btn-ai'); }
       }
     };
   </script>

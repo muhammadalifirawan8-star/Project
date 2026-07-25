@@ -1,144 +1,127 @@
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzNJiZe9Z1vUujiVBYOsD5oNdc-7NLJGrTvIqCO6KWeU19HLk6oORoYQwsU-sWjGgXs/exec';
+// Ganti dengan URL Web App dari Google Apps Script Anda
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2WSHxAPfO5-aC_I6XCje1q69JI3WOoQSuTezn6DizhL77P_IsqFDHhlMDRNvjjaE/exec'; 
 
-// --- Utilities ---
-const utils = {
-  // Sanitasi XSS untuk input yang akan dirender ke DOM UI (bukan iframe preview)
-  escapeHTML: (str) => str.replace(/[&<>'"]/g, tag => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-    }[tag])),
-  
-  showLoading: (msg = 'Memproses...') => {
-    document.getElementById('loader-text').innerText = msg;
-    document.getElementById('loader').classList.remove('hidden');
+// ==========================================
+// Kemanan: Sanitasi HTML untuk cegah XSS
+// ==========================================
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag]));
+}
+
+// ==========================================
+// Manajemen UI & Animasi Loading
+// ==========================================
+const ui = {
+  showLoading: (btnId) => {
+    const btn = document.getElementById(btnId);
+    btn.dataset.originalText = btn.innerText;
+    btn.innerText = 'Memproses...';
+    btn.disabled = true;
   },
-  
-  hideLoading: () => document.getElementById('loader').classList.add('hidden'),
-  
-  log: (msg, type="info") => {
-    const logPanel = document.getElementById('logPanel');
-    const safeMsg = utils.escapeHTML(msg);
-    logPanel.innerHTML += `<br>[${new Date().toLocaleTimeString()}] ${safeMsg}`;
-    logPanel.scrollTop = logPanel.scrollHeight;
+  hideLoading: (btnId) => {
+    const btn = document.getElementById(btnId);
+    btn.innerText = btn.dataset.originalText;
+    btn.disabled = false;
+  },
+  showNotif: (msg, isError = false) => {
+    const notif = document.getElementById('notification');
+    notif.className = isError ? 'notif-error' : 'notif-success';
+    notif.innerHTML = escapeHTML(msg);
+    notif.style.display = 'block';
+    setTimeout(() => { notif.style.display = 'none'; }, 4000);
+  },
+  logIDE: (msg) => {
+    document.getElementById('log-console').innerHTML += `<br>> ${escapeHTML(msg)}`;
   }
 };
 
-// --- Modul 1: Akun (akun.json / Aktivasi Instan) ---
-const account = {
-  isReady: false,
-  activate: async () => {
-    utils.showLoading('Mengonfirmasi pembayaran & Setup Akun (akun.json)...');
+// ==========================================
+// Core Modules (Simulasi File Arsitektur)
+// ==========================================
+const appModule = {
+  // Modul: akun.json (Aktivasi Instan)
+  activateAccount: async () => {
+    const email = document.getElementById('email-input').value;
+    if (!email) return ui.showNotif('Email wajib diisi!', true);
+
+    ui.showLoading('btn-activate');
     try {
-      const res = await fetch(GAS_URL, {
+      const response = await fetch(GAS_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'activateAccount', email: 'user@bisnis.com' })
+        body: JSON.stringify({ action: 'activateAccount', email: email })
       });
-      const data = await res.json();
-      if(data.status === 'success') {
-        account.isReady = true;
-        document.getElementById('accountStatus').innerText = `✅ Akun Aktif: ${utils.escapeHTML(data.user)}`;
-        document.getElementById('accountStatus').style.color = '#4CAF50';
-        utils.log("Akun berhasil diaktivasi secara instan.");
-      }
-    } catch (error) {
-      utils.log(`Error aktivasi: ${error.message}`);
-    } finally {
-      utils.hideLoading();
-    }
-  }
-};
-
-// --- Modul 2 & 3: Project Builder & Browser IDE ---
-const ide = {
-  currentExt: 'html',
-  files: {
-    html: "<h1>Halo Dunia!</h1>\n<p>Aplikasi bisnis baru siap dilaunching.</p>",
-    css: "body { font-family: sans-serif; text-align: center; margin-top: 50px; }",
-    js: "console.log('Aplikasi berjalan dengan baik!');"
-  },
-  
-  init: () => {
-    document.getElementById('codeEditor').value = ide.files['html'];
-    document.getElementById('codeEditor').addEventListener('input', (e) => {
-      ide.files[ide.currentExt] = e.target.value;
-    });
-  },
-
-  switchFile: (ext) => {
-    ide.currentExt = ext;
-    document.getElementById('codeEditor').value = ide.files[ext];
-    
-    // Update UI active state
-    document.querySelectorAll('.sidebar li').forEach(li => li.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    const fileNames = { html: 'index.html', css: 'style.css', js: 'script.js' };
-    document.getElementById('currentFileLabel').innerText = fileNames[ext];
-    utils.log(`Membuka ${fileNames[ext]}...`);
-  },
-
-  runProject: () => {
-    utils.log("Menjalankan preview proyek...");
-    const iframe = document.getElementById('previewFrame');
-    
-    // Menggabungkan HTML, CSS, JS menggunakan srcdoc untuk keamanan sandbox
-    const combinedCode = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>${ide.files.css}</style>
-        </head>
-        <body>
-          ${ide.files.html}
-          <script>${ide.files.js}<\/script>
-        </body>
-      </html>
-    `;
-    iframe.srcdoc = combinedCode;
-  }
-};
-
-// --- Modul 4: Publisher (publish.sh) ---
-const publisher = {
-  publish: async () => {
-    if (!account.isReady) {
-      alert("Harap aktivasi akun terlebih dahulu!");
-      return;
-    }
-    
-    utils.showLoading('Mempublikasikan proyek ke server (publish.sh)...');
-    try {
-      const payload = {
-        action: 'saveProject',
-        user: 'user@bisnis.com',
-        projectName: 'Landing_Page_1',
-        htmlCode: ide.files.html,
-        cssCode: ide.files.css,
-        jsCode: ide.files.js
-      };
-
-      const res = await fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+      const result = await response.json();
       
-      const data = await res.json();
-      if(data.status === 'success') {
-        utils.log(`Sukses: ${data.message} URL Publik: https://app.namabisnisanda.com/p1`);
-        alert("Proyek berhasil dipublish!");
+      if (result.status === 'success') {
+        ui.showNotif(result.data.message);
+        document.getElementById('panel-activation').classList.add('hidden');
+        document.getElementById('panel-ide').classList.remove('hidden');
+        
+        const badge = document.getElementById('status-badge');
+        badge.innerText = 'Status: Active (Pro)';
+        badge.classList.add('active');
+        ui.logIDE('Sistem siap. Silakan buat project baru.');
       } else {
-        throw new Error(data.message);
+        throw new Error(result.message);
       }
     } catch (error) {
-      utils.log(`Gagal publish: ${error.message}`);
-      alert("Gagal mempublikasikan proyek.");
+      ui.showNotif('Gagal mengaktifkan akun: ' + error.message, true);
     } finally {
-      utils.hideLoading();
+      ui.hideLoading('btn-activate');
+    }
+  },
+
+  // Modul: browser-ide.js & project-builder.js
+  saveProject: async () => {
+    const projectId = document.getElementById('project-id').value;
+    const code = document.getElementById('code-editor').value;
+    if (!projectId || !code) return ui.showNotif('ID dan Kode tidak boleh kosong!', true);
+
+    ui.showLoading('btn-save');
+    ui.logIDE('Menyimpan perubahan ke Cloud...');
+    
+    try {
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'saveProject', projectId: projectId, code: code, email: document.getElementById('email-input').value })
+      });
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        ui.logIDE('Tersimpan! ' + result.data.message);
+        ui.showNotif('File utama berhasil disimpan.');
+      }
+    } catch (error) {
+      ui.logIDE('[ERROR] Gagal menyimpan.');
+      ui.showNotif('Error menyimpan project', true);
+    } finally {
+      ui.hideLoading('btn-save');
+    }
+  },
+
+  // Modul: publish.sh (Preview & Publish)
+  publishProject: async () => {
+    const projectId = document.getElementById('project-id').value;
+    ui.showLoading('btn-publish');
+    ui.logIDE('Menyiapkan URL publik dan server preview...');
+    
+    try {
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'publishProject', projectId: projectId })
+      });
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        ui.logIDE(`Publish sukses! URL Publik: ${result.data.url}`);
+        ui.showNotif('Project siap diakses publik!');
+      }
+    } catch (error) {
+      ui.showNotif('Gagal melakukan publish.', true);
+    } finally {
+      ui.hideLoading('btn-publish');
     }
   }
-};
-
-// Initialize App
-window.onload = () => {
-  ide.init();
-  utils.log("Web Builder Workspace dimuat. Sistem siap.");
 };

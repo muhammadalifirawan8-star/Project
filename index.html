@@ -7,8 +7,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  
-  <!-- Navbar -->
   <nav class="navbar">
     <div class="brand">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
@@ -17,23 +15,14 @@
     <div id="user-badge" class="badge">Status: Guest</div>
   </nav>
 
-  <!-- Notifikasi -->
   <div id="toast" class="toast hidden"></div>
 
   <main class="layout">
-    <!-- Sidebar: Aktivasi & Konfigurasi -->
     <aside class="sidebar">
-      <!-- AI Assistant Panel -->
-      <div id="panel-ai" class="panel">
-        <h3>✨ Gemini AI Assistant</h3>
-        <p class="desc">Ketik apa yang ingin Anda buat, AI akan menulis kodenya untuk Anda.</p>
-        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan form login dengan tombol biru..." style="height: 80px; resize: none;"></textarea>
-        <button id="btn-ai" class="btn btn-primary" style="background: #8b5cf6;" onclick="app.askGemini()">Generate Kode</button>
-      </div>
       <div id="panel-auth" class="panel">
         <h3>Aktivasi Workspace</h3>
         <p class="desc">Masukkan email untuk membuka akses IDE.</p>
-        <input type="email" id="input-email" class="input-modern" placeholder="email@perusahaan.com">
+        <input type="email" id="input-email" class="input-modern" placeholder="email@domain.com">
         <button id="btn-auth" class="btn btn-primary" onclick="app.activate()">Mulai Coding</button>
       </div>
 
@@ -41,15 +30,20 @@
         <h3>Konfigurasi Project</h3>
         <label>Project ID (URL Slug)</label>
         <input type="text" id="input-project" class="input-modern" placeholder="ex: landing-page-v1">
-        
         <div class="action-grid">
           <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan Code</button>
           <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Publish & Lihat</button>
         </div>
       </div>
+
+      <div id="panel-ai" class="panel hidden">
+        <h3>✨ Gemini AI Assistant</h3>
+        <p class="desc">Ketik apa yang ingin Anda buat, AI akan menulis kodenya.</p>
+        <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan form login keren..." style="height: 80px; resize: none;"></textarea>
+        <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Kode</button>
+      </div>
     </aside>
 
-    <!-- Main Editor & Console -->
     <section class="editor-area">
       <div class="editor-header">
         <span class="tab active">index.html</span>
@@ -62,7 +56,6 @@
       </div>
     </section>
   </main>
-
   <script src="script.js"></script>
 </body>
 </html>

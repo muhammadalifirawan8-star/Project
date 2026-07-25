@@ -220,7 +220,7 @@
     // ==========================================
     // WAJIB GANTI: URL Web App Google Apps Script Anda
     // ==========================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdbdi41idIMK3YoGg-mmqD3k3YwDivxskJvNXZReFI_463oG7wcmPHrSTanNtccwaW/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyL3-KKDDi9I2y_aJwh7pWDuaCyOzvWbCVxHPqiN7Ae3c_2si0LGy4fVqUlChLYtyqV/exec';
 
     const escapeHTML = (str) => {
       return String(str).replace(/[&<>'"]/g, 
@@ -618,7 +618,10 @@ ${mainCode}
             }
             document.getElementById('input-prompt').value = '';
           } else { throw new Error(res.message); }
-        } catch (err) { ui.toast('Gagal terhubung ke AI', 'error'); } finally { ui.reset('btn-ai'); }
+        } catch (err) { 
+          ui.toast('Gagal terhubung ke AI', 'error'); 
+          ui.log(`Koneksi Backend Gagal: ${err.message}. Pastikan GAS_URL valid dan akses di-set ke 'Anyone'.`, 'error');
+        } finally { ui.reset('btn-ai'); }
       },
 
       auditCode: async () => {
@@ -657,7 +660,7 @@ ${mainCode}
           } else { throw new Error(res.message); }
         } catch (err) { 
           ui.toast('Gagal melakukan audit', 'error'); 
-          ui.log(`Audit Error: ${err.message}`, 'error');
+          ui.log(`Koneksi Backend Gagal: ${err.message}. Pastikan GAS_URL valid.`, 'error');
         } finally { 
           ui.reset('btn-audit'); 
         }

@@ -3,46 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SaaS Web Builder & IDE</title>
+  <title>Nexus IDE - Serverless Builder</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+      <span>Nexus IDE</span>
+    </div>
+    <div id="user-badge" class="badge">Status: Guest</div>
+  </nav>
 
-  <div class="dashboard">
-    <header>
-      <h1>Web Builder Workspace</h1>
-      <div id="status-badge" class="badge">Status: Guest</div>
-    </header>
+  <!-- Notifikasi -->
+  <div id="toast" class="toast hidden"></div>
 
-    <!-- Notifikasi Global -->
-    <div id="notification" class="hidden"></div>
+  <main class="layout">
+    <!-- Sidebar: Aktivasi & Konfigurasi -->
+    <aside class="sidebar">
+      <div id="panel-auth" class="panel">
+        <h3>Aktivasi Workspace</h3>
+        <p class="desc">Masukkan email untuk membuka akses IDE.</p>
+        <input type="email" id="input-email" class="input-modern" placeholder="email@perusahaan.com">
+        <button id="btn-auth" class="btn btn-primary" onclick="app.activate()">Mulai Coding</button>
+      </div>
 
-    <main>
-      <!-- Panel Aktivasi (akun.json) -->
-      <section id="panel-activation" class="card">
-        <h2>Aktivasi Instan</h2>
-        <p>Konfirmasi pembayaran dan langsung gunakan workspace.</p>
-        <input type="email" id="email-input" placeholder="Masukkan Email Anda">
-        <button id="btn-activate" onclick="appModule.activateAccount()">Aktivasi Sekarang</button>
-      </section>
-
-      <!-- Panel IDE & Builder (project-builder.js & browser-ide.js) -->
-      <section id="panel-ide" class="card hidden">
-        <h2>Browser IDE</h2>
-        <input type="text" id="project-id" placeholder="Nama Project (ex: landing-page-1)">
-        <textarea id="code-editor" placeholder="<!-- Tulis kode HTML/JS Anda di sini -->"></textarea>
+      <div id="panel-config" class="panel hidden">
+        <h3>Konfigurasi Project</h3>
+        <label>Project ID (URL Slug)</label>
+        <input type="text" id="input-project" class="input-modern" placeholder="ex: landing-page-v1">
         
-        <div class="action-group">
-          <button id="btn-save" class="btn-primary" onclick="appModule.saveProject()">Simpan Perubahan</button>
-          <button id="btn-publish" class="btn-secondary" onclick="appModule.publishProject()">Publish Project</button>
+        <div class="action-grid">
+          <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan Code</button>
+          <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Publish & Lihat</button>
         </div>
-        
-        <div id="log-console" class="console">
-          > Menunggu perintah...
-        </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </aside>
+
+    <!-- Main Editor & Console -->
+    <section class="editor-area">
+      <div class="editor-header">
+        <span class="tab active">index.html</span>
+      </div>
+      <textarea id="input-code" class="code-editor" placeholder="<!-- Mulai ketik HTML/JS/CSS Anda di sini -->&#10;<h1>Halo Dunia</h1>"></textarea>
+      
+      <div class="terminal-container">
+        <div class="terminal-header">Terminal Output</div>
+        <div id="terminal-log" class="terminal-body">> Menunggu sistem siap...</div>
+      </div>
+    </section>
+  </main>
 
   <script src="script.js"></script>
 </body>

@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nexus IDE - Fullstack Enterprise</title>
+  
+  <!-- Tambahkan Library JSZip di sini untuk fitur Download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  
   <style>
     /* DESAIN DARK MODE PROFESIONAL */
     :root {
@@ -154,6 +158,8 @@
         <div class="action-grid" style="margin-top: 5px;">
           <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan</button>
           <button id="btn-publish" class="btn btn-success" onclick="app.publish()">Lihat Web</button>
+          <!-- Tambahkan Tombol Download ZIP di bawah ini -->
+          <button id="btn-download" class="btn btn-purple" onclick="app.downloadZip()" style="grid-column: span 2;">Download ZIP</button>
         </div>
       </div>
     </aside>
@@ -318,6 +324,42 @@
         ui.log(`Menjalankan Engine Preview. Jika file React terdeteksi, Babel akan di-inject...`, 'warn');
         ui.log(`(Perhatian: File Backend seperti server.js atau Dockerfile tidak dapat dijalankan di web browser, silakan dicopy untuk dijalankan secara lokal)`);
         window.open(`${GAS_URL}?id=${id}`, '_blank');
+      },
+
+      // Tambahkan Logika Fungsi Download ZIP di bawah ini
+      downloadZip: async () => {
+        const projectName = document.getElementById('input-project').value.trim() || 'nexus-project';
+        ui.log(`Menyiapkan file ZIP untuk ${projectName}...`, 'info');
+        
+        try {
+          const zip = new JSZip();
+          
+          // Memasukkan seluruh file di memori (app.files) ke dalam ZIP
+          for (const [filename, content] of Object.entries(app.files)) {
+            zip.file(filename, content);
+          }
+          
+          // Membangun file ZIP
+          const content = await zip.generateAsync({ type: "blob" });
+          
+          // Membuat link download otomatis
+          const url = URL.createObjectURL(content);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${projectName}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          
+          // Membersihkan memori browser setelah download
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          ui.toast('Project berhasil didownload!', 'success');
+          ui.log(`File ${projectName}.zip berhasil didownload.`, 'success');
+        } catch (err) {
+          ui.toast('Gagal membuat ZIP', 'error');
+          ui.log(`Zip Error: ${err.message}`, 'error');
+        }
       },
 
       askGemini: async () => {

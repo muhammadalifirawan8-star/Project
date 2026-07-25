@@ -55,6 +55,12 @@
     .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-dark); }
     .code-editor { flex: 1; background: var(--bg-dark); color: #e2e8f0; font-family: var(--font-mono); font-size: 13px; padding: 20px; border: none; outline: none; resize: none; line-height: 1.6; }
 
+    .workspace-split { display: flex; flex: 1; overflow: hidden; }
+    .preview-pane { flex: 1; display: flex; flex-direction: column; background: #ffffff; border-left: 1px solid var(--border); }
+    .preview-header { background: #f1f5f9; padding: 6px 12px; font-size: 0.8rem; color: #334155; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; font-weight: 600; }
+    .preview-frame { flex: 1; width: 100%; border: none; background: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 4px; }
+
     .terminal-container { height: 180px; border-top: 1px solid var(--border); display: flex; flex-direction: column; background: #000; }
     .terminal-header { background: #1a1a1a; padding: 6px 16px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     .terminal-body { flex: 1; padding: 12px 16px; color: #22c55e; font-family: var(--font-mono); font-size: 0.85rem; overflow-y: auto; line-height: 1.5; }
@@ -159,10 +165,24 @@
 
     <section class="editor-area">
       <div class="editor-header">
-        <span class="tab active" id="active-tab-name">index.html</span>
-        <span style="font-size: 0.75rem; color: var(--text-muted);">Auto-saving diaktifkan</span>
+        <div>
+          <span class="tab active" id="active-tab-name">index.html</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 10px;">Auto-saving diaktifkan</span>
+        </div>
+        <button id="btn-toggle-preview" class="btn btn-purple btn-sm" onclick="app.togglePreview()">👀 Buka Preview</button>
       </div>
-      <textarea id="input-code" class="code-editor"></textarea>
+      
+      <div class="workspace-split">
+        <textarea id="input-code" class="code-editor"></textarea>
+        
+        <div id="preview-container" class="preview-pane hidden">
+          <div class="preview-header">
+            <span>🚀 Live Preview (Lokal)</span>
+            <button onclick="app.refreshPreview()" style="background: transparent; border: none; cursor: pointer; color: #2563eb; font-weight: bold; font-size: 0.8rem;">🔄 Refresh</button>
+          </div>
+          <iframe id="preview-frame" class="preview-frame" sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
+        </div>
+      </div>
       
       <div class="terminal-container">
         <div class="terminal-header">Terminal / Build Logs</div>
@@ -217,6 +237,7 @@
       const codeEditor = document.getElementById('input-code');
       codeEditor.addEventListener('input', (e) => {
         app.files[app.activeFile] = e.target.value;
+        app.schedulePreviewRefresh();
       });
       app.switchFile('index.html');
     });
@@ -224,6 +245,8 @@
     const app = {
       email: '',
       activeFile: 'index.html',
+      previewOpen: false,
+      previewTimeout: null,
       
       files: {
         'index.html': '<!DOCTYPE html>\n<html lang="id">\n<head>\n  <meta charset="UTF-8">\n  <title>App</title>\n</head>\n<body>\n  <h1>Welcome</h1>\n</body>\n</html>',
@@ -238,6 +261,75 @@
         document.querySelectorAll('.file-tree .file').forEach(el => el.classList.remove('active-file'));
         const activeEl = document.querySelector(`.file-tree .file[data-file="${filename}"]`);
         if (activeEl) activeEl.classList.add('active-file');
+      },
+
+      togglePreview: () => {
+        app.previewOpen = !app.previewOpen;
+        const container = document.getElementById('preview-container');
+        const btn = document.getElementById('btn-toggle-preview');
+        
+        if (app.previewOpen) {
+          container.classList.remove('hidden');
+          btn.innerText = '❌ Tutup Preview';
+          app.refreshPreview();
+          ui.log('Membuka Live Preview Lokal...', 'info');
+        } else {
+          container.classList.add('hidden');
+          btn.innerText = '👀 Buka Preview';
+        }
+      },
+
+      schedulePreviewRefresh: () => {
+        if (!app.previewOpen) return;
+        clearTimeout(app.previewTimeout);
+        app.previewTimeout = setTimeout(() => {
+          app.refreshPreview();
+        }, 800); // 0.8 detik delay auto-refresh agar tidak lag saat mengetik
+      },
+
+      refreshPreview: () => {
+        if (!app.previewOpen) return;
+        const frame = document.getElementById('preview-frame');
+        
+        // Mesin Compiler Lokal (Bekerja secara offline tanpa perlu hit server GAS)
+        let htmlContent = '';
+        
+        // Jika sedang mem-build React
+        if (app.files['src/App.jsx'] || app.files['App.jsx'] || app.files['src/main.jsx']) {
+          htmlContent = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>
+              <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>
+              <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+              <style>${app.files['style.css'] || ''}</style>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="text/babel">
+                ${app.files['src/App.jsx'] || app.files['App.jsx'] || ''}
+                ${app.files['src/main.jsx'] || ''}
+              <\/script>
+            </body>
+            </html>
+          `;
+        } else {
+          // Jika aplikasi HTML/CSS/JS murni
+          htmlContent = app.files['index.html'] || '<h1>File index.html tidak ditemukan</h1>';
+          if (app.files['style.css']) {
+            htmlContent = htmlContent.replace('</head>', `<style>${app.files['style.css']}</style></head>`);
+          }
+          if (app.files['script.js']) {
+            htmlContent = htmlContent.replace('</body>', `<script>${app.files['script.js']}<\/script></body>`);
+          }
+        }
+
+        // Membungkus dan menyuntikkan HTML ke dalam iFrame tanpa me-reload halaman utama
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        frame.src = URL.createObjectURL(blob);
       },
       
       activate: async () => {

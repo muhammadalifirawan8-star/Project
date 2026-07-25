@@ -291,27 +291,63 @@
         if (!app.previewOpen) return;
         const frame = document.getElementById('preview-frame');
         
-        // Mesin Compiler Lokal (Bekerja secara offline tanpa perlu hit server GAS)
         let htmlContent = '';
         
         // Jika sedang mem-build React
         if (app.files['src/App.jsx'] || app.files['App.jsx'] || app.files['src/main.jsx']) {
+          
+          /* ========================================================
+             SMART REACT COMBINER: 
+             Menggabungkan semua file .jsx dan membersihkan import lokal 
+             agar bisa jalan murni di Web Browser tanpa Node.js
+             ======================================================== */
+          let allComponentsCode = '';
+          let mainCode = app.files['src/main.jsx'] || app.files['main.jsx'] || '';
+          
+          for (const [filename, content] of Object.entries(app.files)) {
+            // Ambil semua file komponen JSX kecuali file utama (main.jsx)
+            if (filename.endsWith('.jsx') && !filename.includes('main.jsx')) {
+              let cleanContent = content;
+              // 1. Hapus import ke file lokal (contoh: import Header from './Header')
+              cleanContent = cleanContent.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
+              // 2. Hapus export default agar tidak bentrok saat digabung
+              cleanContent = cleanContent.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, '');
+              
+              allComponentsCode += `\n/* File: ${filename} */\n${cleanContent}\n`;
+            }
+          }
+          
+          // Bersihkan file utama (main.jsx) dari import lokal juga
+          mainCode = mainCode.replace(/import\s+.*?from\s+['"][\.\/]+.*?['"];?/g, '');
+
           htmlContent = `
             <!DOCTYPE html>
             <html lang="en">
             <head>
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>
-              <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>
-              <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+              
+              <!-- Import Map: Membantu browser mengambil library React dari server ESM -->
+              <script type="importmap">
+                {
+                  "imports": {
+                    "react": "https://esm.sh/react@18.2.0",
+                    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                    "lucide-react": "https://esm.sh/lucide-react"
+                  }
+                }
+              </script>
+              <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
               <style>${app.files['style.css'] || ''}</style>
             </head>
             <body>
               <div id="root"></div>
-              <script type="text/babel">
-                ${app.files['src/App.jsx'] || app.files['App.jsx'] || ''}
-                ${app.files['src/main.jsx'] || ''}
+              <script type="text/babel" data-type="module">
+                // 1. Suntikkan semua file komponen di atas
+                ${allComponentsCode}
+                
+                // 2. Suntikkan file eksekusi (main.jsx) di bawah
+                ${mainCode}
               <\/script>
             </body>
             </html>
@@ -327,7 +363,6 @@
           }
         }
 
-        // Membungkus dan menyuntikkan HTML ke dalam iFrame tanpa me-reload halaman utama
         const blob = new Blob([htmlContent], { type: 'text/html' });
         frame.src = URL.createObjectURL(blob);
       },

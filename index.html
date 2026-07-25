@@ -14,7 +14,7 @@
       --success: #10b981; --success-hover: #059669; --purple: #8b5cf6; --purple-hover: #7c3aed;
       --danger: #ef4444; --font-sans: 'Segoe UI', system-ui, sans-serif;
       --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
-      --warning: #f59e0b;
+      --warning: #f59e0b; --warning-hover: #d97706;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background-color: var(--bg-dark); color: var(--text-main); font-family: var(--font-sans); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -29,7 +29,7 @@
     .editor-area { flex: 1; display: flex; flex-direction: column; }
 
     .panel { display: flex; flex-direction: column; gap: 12px; }
-    .panel h3 { font-size: 1rem; color: var(--text-main); }
+    .panel h3 { font-size: 1rem; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;}
     .desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
     label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
@@ -49,7 +49,7 @@
     .btn-primary { background: var(--primary); } .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
     .btn-success { background: var(--success); } .btn-success:hover:not(:disabled) { background: var(--success-hover); }
     .btn-purple { background: var(--purple); } .btn-purple:hover:not(:disabled) { background: var(--purple-hover); }
-    .btn-warning { background: var(--warning); color: #000; } .btn-warning:hover:not(:disabled) { background: #d97706; }
+    .btn-warning { background: var(--warning); color: #000; } .btn-warning:hover:not(:disabled) { background: var(--warning-hover); }
     .btn-dark { background: #000; border: 1px solid var(--border); } .btn-dark:hover:not(:disabled) { background: #111; }
     .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
@@ -158,7 +158,10 @@
           <option value="api">⚙️ Backend REST API</option>
         </select>
         <textarea id="input-prompt" class="input-modern" placeholder="Contoh: Buatkan aplikasi toko online elegan..." style="height: 70px; resize: none;"></textarea>
-        <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">Generate Full Project</button>
+        
+        <button id="btn-ai" class="btn btn-purple" onclick="app.askGemini()">✨ Generate Full Project</button>
+        <!-- Fitur Baru: AI Audit & Auto-Fix -->
+        <button id="btn-audit" class="btn btn-warning" onclick="app.auditCode()" style="margin-top: 2px;">🛠️ AI Audit & Perbaiki Bug</button>
       </div>
 
       <div id="panel-config" class="panel hidden">
@@ -167,7 +170,7 @@
         <input type="text" id="input-project" class="input-modern" placeholder="ex: aplikasi-keren-01">
         <div class="action-grid" style="margin-top: 5px;">
           <button id="btn-save" class="btn btn-primary" onclick="app.save()">Simpan</button>
-          <button id="btn-history" class="btn btn-warning" onclick="app.openHistory()">⏳ Riwayat</button>
+          <button id="btn-history" class="btn btn-warning" onclick="app.openHistory()" style="color: black;">⏳ Riwayat</button>
           <button id="btn-deploy" class="btn btn-dark" onclick="app.openDeploy()" style="grid-column: span 2;">🚀 Deploy to Vercel</button>
           <button id="btn-download" class="btn btn-purple" onclick="app.downloadZip()" style="grid-column: span 2;">📦 Download ZIP</button>
         </div>
@@ -230,7 +233,7 @@
     // ==========================================
     // WAJIB GANTI: URL Web App Google Apps Script Anda
     // ==========================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhOWQkRWkpXWuzmqDBsGgwgcAonWylqLhfvsZtKZKwkHSX7uQV-X9LGZUnEhBKul5g/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdbdi41idIMK3YoGg-mmqD3k3YwDivxskJvNXZReFI_463oG7wcmPHrSTanNtccwaW/exec';
 
     const escapeHTML = (str) => {
       return String(str).replace(/[&<>'"]/g, 
@@ -330,13 +333,9 @@
           let mainCode = app.files['src/main.jsx'] || app.files['main.jsx'] || '';
           let importsArray = [];
           
-          // ANTI-WHITE SCREEN REGEX ENGINE (Membersihkan file lokal dan memecah React)
           const extractImports = (code) => {
              let cleaned = code;
-             // 1. Hancurkan import css (menyebabkan babel error) karena css sudah dipasang via <style>
              cleaned = cleaned.replace(/import\s+['"][^'"]+\.css['"];?/g, '');
-             
-             // 2. Ambil eksternal import
              const importRegex = /import\s+(?:\{[^}]+\}|\* as \w+|\w+)(?:\s+from)?\s+['"]([^'"]+)['"];?/g;
              let match;
              while ((match = importRegex.exec(cleaned)) !== null) {
@@ -344,7 +343,6 @@
                      importsArray.push(match[0]);
                  }
              }
-             // 3. Hapus semua baris import
              cleaned = cleaned.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
              return cleaned;
           };
@@ -352,12 +350,15 @@
           for (const [filename, content] of Object.entries(app.files)) {
             if (filename.endsWith('.jsx') && !filename.includes('main.jsx')) {
               let cleanContent = extractImports(content);
-              // Bersihkan export dengan regex yang lebih kuat untuk mencegah error React
+              
+              // Pembersih kuat pencegah duplicate export yang memicu crash Babel
               cleanContent = cleanContent.replace(/export\s+default\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+default\s+const/g, 'const');
               cleanContent = cleanContent.replace(/export\s+const/g, 'const');
               cleanContent = cleanContent.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, '');
+              cleanContent = cleanContent.replace(/export\s+\{.*?\};?/g, ''); 
+              
               allComponentsCode += '\n/* File: ' + filename + ' */\n' + cleanContent + '\n';
             }
           }
@@ -365,10 +366,12 @@
           mainCode = extractImports(mainCode);
           
           const uniqueImports = [...new Set(importsArray)].join('\n');
+          
+          // Anti-Bug: Split script tags untuk mencegah browser tertipu menutup script IDE utama
           const scriptStart = '<' + 'script type="text/babel" data-type="module">';
           const scriptEnd = '<' + '/script>';
 
-          // Merakit HTML Murni, menyuntik Tailwind CDN agar UI Mewah terlihat
+          // Merakit HTML Murni, menyuntik Tailwind CDN
           htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -387,24 +390,27 @@
   <style>${app.files['index.css'] || app.files['style.css'] || ''}</style>
   <`+`script>
     window.addEventListener('error', function(e) {
-      document.getElementById('root').innerHTML = '<div style="color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;"><h3>🚨 React Error</h3><p>' + e.message + '</p></div>';
+      document.getElementById('root').innerHTML = '<div style="color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;"><h3>🚨 React Error Terdeteksi</h3><p>' + e.message + '</p><p style="font-size:12px; margin-top:10px;">Gunakan tombol AI Audit & Perbaiki Bug di panel kiri.</p></div>';
     });
   <`+`/script>
 </head>
 <body>
   <div id="root"></div>
+  
   ${scriptStart}
+// Bagian 1: Inject Top-Level Imports ES6
 ${uniqueImports}
 
+// Bagian 2: Semua Komponen
 ${allComponentsCode}
 
+// Bagian 3: File Main/Entry point
 ${mainCode}
   ${scriptEnd}
 </body>
 </html>`;
             
         } else {
-          // Render HTML Biasa tapi dengan Tailwind CDN (Jika HTML)
           htmlContent = app.files['index.html'] || '<h1>File index.html tidak ditemukan</h1>';
           if (!htmlContent.includes('tailwindcss.com')) {
               htmlContent = htmlContent.replace('</head>', '<script src="https://cdn.tailwindcss.com"><' + '/script></head>');
@@ -504,7 +510,7 @@ ${mainCode}
         document.getElementById('modal-deploy').classList.add('hidden');
         ui.log('🚀 MEMULAI DEPLOYMENT KE VERCEL...', 'highlight');
 
-        app.autoFixReactFiles();
+        app.autoFixReactFiles(); // Trigger Linter sebelum dikirim
         if (!token) return ui.log('Error: Token Vercel kosong.', 'error');
 
         let vercelFiles = [];
@@ -593,27 +599,21 @@ ${mainCode}
           
           if (res.status === 'success') {
             try {
-              // --- PERBAIKAN: PEMBERSIH FORMAT AI BANDEL ---
               let rawAnswer = res.data.answer.trim();
-              
-              // 1. Hapus markdown (```json dan ```)
               rawAnswer = rawAnswer.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
               
-              // 2. Ambil paksa hanya teks yang ada di antara { dan }
               const jsonStart = rawAnswer.indexOf('{');
               const jsonEnd = rawAnswer.lastIndexOf('}');
-              
               if (jsonStart !== -1 && jsonEnd !== -1) {
                 rawAnswer = rawAnswer.substring(jsonStart, jsonEnd + 1);
               }
               
               const generatedFiles = JSON.parse(rawAnswer);
-              // ---------------------------------------------
 
               for (const [filename, content] of Object.entries(generatedFiles)) {
                 app.files[filename] = content;
               }
-              ui.toast('Aplikasi Profesional Selesai!', 'success');
+              ui.toast('Aplikasi Selesai Dibuat!', 'success');
               
               app.autoFixReactFiles();
               ui.log('✅ BUILD SELESAI. Silakan buka Preview atau klik Deploy Vercel.', 'success');
@@ -624,11 +624,62 @@ ${mainCode}
                 app.switchFile(app.activeFile); app.refreshPreview();
               }
             } catch (parseError) {
-              ui.log('AI membalas format aneh, coba lagi.', 'error');
+              ui.log('AI membalas dengan format yang tidak bisa dibaca, coba lagi.', 'error');
             }
             document.getElementById('input-prompt').value = '';
           } else { throw new Error(res.message); }
         } catch (err) { ui.toast('Gagal memproses AI', 'error'); } finally { ui.reset('btn-ai'); }
+      },
+
+      auditCode: async () => {
+        ui.loading('btn-audit', 'AI Sedang Audit...');
+        ui.log('🛠️ Memulai audit kode menyeluruh...', 'warn');
+        ui.log('Sistem menganalisis semua file untuk mencari bug dan error...', 'info');
+        
+        try {
+          const response = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            redirect: 'follow',
+            body: JSON.stringify({ action: 'auditCode', files: app.files })
+          });
+          const res = await response.json();
+          
+          if (res.status === 'success') {
+            try {
+              let rawAnswer = res.data.answer.trim();
+              rawAnswer = rawAnswer.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+              
+              const jsonStart = rawAnswer.indexOf('{');
+              const jsonEnd = rawAnswer.lastIndexOf('}');
+              if (jsonStart !== -1 && jsonEnd !== -1) {
+                rawAnswer = rawAnswer.substring(jsonStart, jsonEnd + 1);
+              }
+              
+              const fixedFiles = JSON.parse(rawAnswer);
+
+              // Update state file dengan kode yang sudah dibenarkan AI
+              for (const [filename, content] of Object.entries(fixedFiles)) {
+                app.files[filename] = content;
+              }
+              
+              app.autoFixReactFiles(); // Jalankan linter bawaan sekali lagi
+              app.switchFile(app.activeFile);
+              app.refreshPreview();
+              
+              ui.toast('Audit Selesai! Bug berhasil diperbaiki.', 'success');
+              ui.log('✅ AI Debugger berhasil menyelesaikan masalah. Aplikasi sekarang bersih.', 'success');
+
+            } catch (parseError) {
+              ui.log('Gagal membaca respons perbaikan dari AI.', 'error');
+            }
+          } else { throw new Error(res.message); }
+        } catch (err) { 
+          ui.toast('Gagal melakukan audit', 'error'); 
+          ui.log(`Audit Error: ${err.message}`, 'error');
+        } finally { 
+          ui.reset('btn-audit'); 
+        }
       }
     };
   </script>

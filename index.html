@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppCraft IDE - Pro Edition</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="brand">🚀 AppCraft IDE Pro</div>
+    <div class="badge" id="user-badge">Offline</div>
+  </nav>
+
+  <!-- Layar Utama -->
+  <main class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      
+      <!-- Panel Autentikasi -->
+      <div class="panel" id="panel-auth">
+        <h3>🔐 Aktivasi</h3>
+        <p class="desc">Masukkan email untuk mengakses Workspace Anda.</p>
+        <input type="email" id="input-email" class="input-modern" placeholder="email@perusahaan.com">
+        <button id="btn-auth" class="btn btn-primary" onclick="app.activate()">Masuk ke Workspace</button>
+      </div>
+
+      <!-- Panel Konfigurasi -->
+      <div class="panel hidden" id="panel-config">
+        <h3>⚙️ Konfigurasi Deploy</h3>
+        <label>Project ID (Slug Vercel)</label>
+        <input type="text" id="input-project" class="input-modern" placeholder="contoh: aplikasi-toko-99">
+        <div class="action-grid">
+          <button id="btn-save" class="btn btn-success" onclick="app.save()">💾 Simpan (Cloud)</button>
+          <button id="btn-publish" class="btn btn-purple" onclick="app.publish()">🚀 Deploy Vercel</button>
+        </div>
+      </div>
+
+      <!-- Panel AI Agent -->
+      <div class="panel hidden" id="panel-ai">
+        <h3>🤖 Silicon Valley AI</h3>
+        <label>Prompt Aplikasi</label>
+        <textarea id="input-prompt" class="input-modern" rows="3" placeholder="Buatkan aplikasi kasir modern dengan grafik penjualan..."></textarea>
+        <button id="btn-ai" class="btn btn-primary" onclick="app.askGemini()">✨ Generate Aplikasi</button>
+        <button id="btn-audit" class="btn btn-warning" onclick="app.auditCode()">🛠️ AI Audit & Perbaiki Bug</button>
+      </div>
+
+      <!-- File Explorer -->
+      <div class="panel hidden" id="panel-explorer">
+        <h3>📁 File Explorer</h3>
+        <div class="file-tree" id="file-tree-container">
+          <!-- Daftar file di-render oleh JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Area Editor Utama -->
+    <section class="editor-area">
+      <div class="editor-header">
+        <div class="tab active" id="active-tab-name">Menunggu Workspace...</div>
+      </div>
+      <textarea id="input-code" class="code-editor" placeholder="Pilih file dari Sidebar untuk mulai mengedit..." spellcheck="false"></textarea>
+      
+      <!-- Terminal Log -->
+      <div class="terminal-container">
+        <div class="terminal-header">Terminal / Build Logs</div>
+        <div class="terminal-body" id="terminal-body">
+          > Menunggu sistem siap...<br>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notifikasi -->
+  <div id="toast" class="toast hidden">Notifikasi</div>
+
+  <!-- Script Logika -->
+  <script src="script.js"></script>
+</body>
+</html>

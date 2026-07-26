@@ -7,33 +7,34 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar">
-    <div class="brand">🚀 AppCraft IDE Pro</div>
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; color: #3b82f6;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+      AppCraft IDE Pro
+    </div>
     <div class="badge" id="user-badge">Offline</div>
   </nav>
 
-  <!-- Layar Utama -->
   <main class="layout">
     <!-- Sidebar -->
     <aside class="sidebar">
       
       <!-- Panel Autentikasi -->
       <div class="panel" id="panel-auth">
-        <h3>🔐 Aktivasi</h3>
-        <p class="desc">Masukkan email untuk mengakses Workspace Anda.</p>
-        <input type="email" id="input-email" class="input-modern" placeholder="email@perusahaan.com">
-        <button id="btn-auth" class="btn btn-primary" onclick="app.activate()">Masuk ke Workspace</button>
+        <h3>🔐 Akses Workspace</h3>
+        <p class="desc">Masukkan email Anda untuk mengaktifkan sesi.</p>
+        <input type="email" id="input-email" class="input-modern" placeholder="developer@appcraft.com">
+        <button id="btn-auth" class="btn btn-primary" onclick="app.activate()">Mulai Sesi</button>
       </div>
 
       <!-- Panel Konfigurasi -->
       <div class="panel hidden" id="panel-config">
-        <h3>⚙️ Konfigurasi Deploy</h3>
+        <h3>⚙️ Kontrol Cloud & Vercel</h3>
         <label>Project ID (Slug Vercel)</label>
         <input type="text" id="input-project" class="input-modern" placeholder="contoh: aplikasi-toko-99">
         <div class="action-grid">
-          <button id="btn-save" class="btn btn-success" onclick="app.save()">💾 Simpan (Cloud)</button>
-          <button id="btn-publish" class="btn btn-purple" onclick="app.publish()">🚀 Deploy Vercel</button>
+          <button id="btn-save" class="btn btn-success" onclick="app.save()">💾 Simpan</button>
+          <button id="btn-publish" class="btn btn-purple" onclick="app.publish()">🚀 Deploy</button>
         </div>
       </div>
 
@@ -58,15 +59,26 @@
     <!-- Area Editor Utama -->
     <section class="editor-area">
       <div class="editor-header">
-        <div class="tab active" id="active-tab-name">Menunggu Workspace...</div>
+        <div class="tab-group">
+          <div class="tab active" id="active-tab-name">Menunggu Workspace...</div>
+        </div>
+        <div class="editor-actions">
+           <!-- TOMBOL LIVE PREVIEW DIKEMBALIKAN -->
+           <button id="btn-preview" class="btn btn-outline" onclick="app.togglePreview()">👀 Live Preview</button>
+        </div>
       </div>
+      
+      <!-- Kontainer Kode -->
       <textarea id="input-code" class="code-editor" placeholder="Pilih file dari Sidebar untuk mulai mengedit..." spellcheck="false"></textarea>
+      
+      <!-- Kontainer Preview (Sembunyi by default) -->
+      <iframe id="preview-frame" class="preview-frame hidden" sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
       
       <!-- Terminal Log -->
       <div class="terminal-container">
         <div class="terminal-header">Terminal / Build Logs</div>
         <div class="terminal-body" id="terminal-body">
-          > Menunggu sistem siap...<br>
+          <div class="log-info">> AppCraft Core Engine v3.0 siap. Menunggu perintah...</div>
         </div>
       </div>
     </section>

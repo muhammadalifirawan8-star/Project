@@ -1,9 +1,6 @@
 // [WAJIB] GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA YANG BARU
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2kozSA3zrS9KZ9MwrQAgzJkb1_wVqXOxL7FuIJi_pQNwQvBRD30UlRWF3CZZ_zP38/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwyA1nRO_bKw_miy5RWZO1xJ6VMQihTuI_XQ7mnG4dCHSUCRYQm-UXhyAzS-r7MdW4C/exec';
 
-// ==========================================
-// 1. UTILITAS KEAMANAN & UI
-// ==========================================
 const escapeHTML = (str) => String(str).replace(/[&<>'"]/g, 
   tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
 );
@@ -39,14 +36,10 @@ const ui = {
   }
 };
 
-// ==========================================
-// 2. STATE MANAGER & VERCEL BOILERPLATE
-// ==========================================
 const app = {
   email: '',
   activeFile: 'src/App.jsx',
   
-  // Boilerplate Kebal Bug untuk React + Vite + Vercel
   files: {
     'package.json': JSON.stringify({
       "name": "appcraft-pro", "version": "1.0.0", "type": "module",
@@ -58,10 +51,9 @@ const app = {
     'index.html': "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>AppCraft App</title>\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.jsx\"></script>\n  </body>\n</html>",
     'src/main.jsx': "import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport App from './App.jsx';\nimport './index.css';\n\nReactDOM.createRoot(document.getElementById('root')).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>,\n);",
     'src/index.css': "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\nbody { background-color: #f8fafc; }",
-    'src/App.jsx': "import React from 'react';\n\nexport default function App() {\n  return (\n    <div className=\"min-h-screen flex items-center justify-center\">\n      <h1 className=\"text-3xl font-bold text-blue-600\">Aplikasi Siap Di-build!</h1>\n    </div>\n  );\n}"
+    'src/App.jsx': "import React from 'react';\n\nexport default function App() {\n  return (\n    <div className=\"min-h-screen flex items-center justify-center bg-slate-900\">\n      <h1 className=\"text-3xl font-bold text-blue-400\">Workspace Siap!</h1>\n    </div>\n  );\n}"
   },
 
-  // Fungsi Render File Explorer
   renderExplorer: () => {
     const container = document.getElementById('file-tree-container');
     container.innerHTML = '';
@@ -74,7 +66,6 @@ const app = {
     });
   },
 
-  // Navigasi File
   switchFile: (filename) => {
     if (!app.files[filename] && app.files[filename] !== '') return;
     app.activeFile = filename;
@@ -83,16 +74,12 @@ const app = {
     app.renderExplorer();
   },
 
-  // Auto-Save ketikan pengguna
   initEditor: () => {
     document.getElementById('input-code').addEventListener('input', (e) => {
       app.files[app.activeFile] = e.target.value;
     });
   },
 
-  // ==========================================
-  // 3. KOMUNIKASI API (FETCH KE GAS)
-  // ==========================================
   callServer: async (payload) => {
     try {
       const response = await fetch(GAS_URL, {
@@ -108,24 +95,41 @@ const app = {
     }
   },
 
-  // Engine Penjinak XML AI (Anti Crash)
   parseXMLResponse: (text) => {
-    const regex = /<file path="([^"]+)">([\s\S]*?)<\/file>/g;
+    // Regex lebih fleksibel: Mengizinkan path/name, kutip ganda/tunggal, spasi sembarangan
+    const xmlRegex = /<file\s+(?:path|name)=["']([^"']+)["']>([\s\S]*?)<\/file>/gi;
     let match;
     let fileFound = false;
-    while ((match = regex.exec(text)) !== null) {
+
+    // 1. Ekstraksi Primer (Mencari tag XML)
+    while ((match = xmlRegex.exec(text)) !== null) {
       const filepath = match[1].trim();
       const content = match[2].trim();
       app.files[filepath] = content;
       fileFound = true;
       ui.log(`File di-generate/diperbarui: ${filepath}`, 'info');
     }
+
+    // 2. Ekstraksi Fallback (Penyelamat jika AI ngeyel pakai Markdown)
+    if (!fileFound) {
+      ui.log('AI mengabaikan tag XML. Mengaktifkan sistem penyelamat darurat...', 'warn');
+      
+      // Mencari pola markdown ```jsx ... ``` atau ```javascript ... ```
+      const mdRegex = /```(?:jsx|js|javascript|tsx|html|css)?\s*([\s\S]*?)```/gi;
+      const mdMatches = [...text.matchAll(mdRegex)];
+
+      if (mdMatches.length > 0) {
+        // Ambil blok kode terbesar/pertama dan paksa masuk ke App.jsx
+        const rescuedCode = mdMatches[0][1].trim();
+        app.files['src/App.jsx'] = rescuedCode;
+        fileFound = true;
+        ui.log('Berhasil menyelamatkan kode AI dan disuntikkan ke src/App.jsx', 'success');
+      }
+    }
+
     return fileFound;
   },
 
-  // ==========================================
-  // 4. FUNGSI UTAMA APLIKASI (AKSI TOMBOL)
-  // ==========================================
   activate: async () => {
     const email = document.getElementById('input-email').value.trim();
     if (!email) return ui.toast('Email wajib diisi', 'error');
@@ -171,8 +175,8 @@ const app = {
         ui.toast('Aplikasi berhasil dirakit!', 'success');
         ui.log('Proses perakitan selesai. Silakan periksa kode Anda.');
       } else {
-        ui.log('AI membalas tanpa tag <file>. Format salah.', 'error');
-        console.error(res.data.answer); // Debugging di console
+        ui.log('Sistem Penyelamat Gagal: AI merespons dengan format yang sama sekali tidak ada kodenya.', 'error');
+        console.error("Raw AI Output:", res.data.answer);
       }
     } catch (err) {
       ui.log(`AI Error: ${err.message}`, 'error');
@@ -188,17 +192,17 @@ const app = {
     try {
       const res = await app.callServer({ 
         action: 'auditCode', 
-        files: app.files // Kirim semua file untuk diaudit
+        files: app.files
       });
       
       const success = app.parseXMLResponse(res.data.answer);
       if (success) {
         app.renderExplorer();
-        app.switchFile(app.activeFile); // Refresh tampilan
+        app.switchFile(app.activeFile); 
         ui.toast('Bug berhasil dibersihkan!', 'success');
-        ui.log('Audit selesai. Dependensi dan path file telah disinkronkan.');
+        ui.log('Audit selesai. Struktur file telah disinkronkan.');
       } else {
-        ui.log('Tidak ada file yang diperbaiki oleh AI.', 'info');
+        ui.log('Sistem Penyelamat Gagal: Format audit tidak valid.', 'error');
       }
     } catch (err) {
       ui.log(`Audit Gagal: ${err.message}`, 'error');
@@ -231,12 +235,9 @@ const app = {
   publish: () => {
     const id = document.getElementById('input-project').value.trim();
     if (!id) return ui.toast('Simpan proyek terlebih dahulu!', 'error');
-    
-    // Asumsi: Proses deploy ditangani secara terpisah atau URL preview diarahkan ke web app GAS
     ui.log('Menginisiasi proses Deployment Vercel...', 'warn');
     window.open(`${GAS_URL}?id=${id}`, '_blank');
   }
 };
 
-// Inisialisasi Event Listener
 document.addEventListener('DOMContentLoaded', app.initEditor);

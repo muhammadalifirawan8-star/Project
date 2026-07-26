@@ -1,5 +1,5 @@
 // [WAJIB] GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA YANG BARU
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzCFFsuEjgLKHRtmaMkDh_O3HSvPMYKdqmfOc-lfE_z_fCQIHcwcljUoPuWOLWWN_tg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxNnQq3trqAD-BgFErQ9jegrKyZGCZ9CVJvn9Yya5Tfwb5PoSJjgSniPYdywd8Gkm08/exec';
 
 const escapeHTML = (str) => String(str).replace(/[&<>'"]/g, 
   tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
@@ -21,6 +21,7 @@ const ui = {
     const t = document.getElementById('toast');
     t.innerText = msg;
     t.className = `toast ${type}`;
+    t.classList.remove('hidden');
     setTimeout(() => t.classList.add('hidden'), 3000);
   },
   loading: (btnId, text) => {
@@ -39,7 +40,9 @@ const ui = {
 const app = {
   email: '',
   activeFile: 'src/App.jsx',
+  isPreviewMode: false,
   
+  // Boilerplate Kebal Vercel
   files: {
     'package.json': JSON.stringify({
       "name": "appcraft-pro", "version": "1.0.0", "type": "module",
@@ -51,7 +54,7 @@ const app = {
     'index.html': "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>AppCraft App</title>\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.jsx\"></script>\n  </body>\n</html>",
     'src/main.jsx': "import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport App from './App.jsx';\nimport './index.css';\n\nReactDOM.createRoot(document.getElementById('root')).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>,\n);",
     'src/index.css': "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\nbody { background-color: #f8fafc; }",
-    'src/App.jsx': "import React from 'react';\n\nexport default function App() {\n  return (\n    <div className=\"min-h-screen flex items-center justify-center bg-slate-900\">\n      <h1 className=\"text-3xl font-bold text-blue-400\">Workspace Siap!</h1>\n    </div>\n  );\n}"
+    'src/App.jsx': "import React from 'react';\n\nexport default function App() {\n  return (\n    <div className=\"min-h-screen flex items-center justify-center bg-slate-900\">\n      <h1 className=\"text-3xl font-bold text-blue-400\">Aplikasi Siap Di-build!</h1>\n    </div>\n  );\n}"
   },
 
   renderExplorer: () => {
@@ -67,6 +70,8 @@ const app = {
   },
 
   switchFile: (filename) => {
+    if (app.isPreviewMode) app.togglePreview(); // Matikan preview jika ganti file
+    
     if (!app.files[filename] && app.files[filename] !== '') return;
     app.activeFile = filename;
     document.getElementById('input-code').value = app.files[filename];
@@ -96,12 +101,10 @@ const app = {
   },
 
   parseXMLResponse: (text) => {
-    // Regex lebih fleksibel: Mengizinkan path/name, kutip ganda/tunggal, spasi sembarangan
-    const xmlRegex = /<file\s+(?:path|name)=["']([^"']+)["']>([\s\S]*?)<\/file>/gi;
+    const xmlRegex = /<file\s+(?:path|name)=["']?([^"'>]+)["']?>([\s\S]*?)<\/file>/gi;
     let match;
     let fileFound = false;
 
-    // 1. Ekstraksi Primer (Mencari tag XML)
     while ((match = xmlRegex.exec(text)) !== null) {
       const filepath = match[1].trim();
       const content = match[2].trim();
@@ -110,24 +113,81 @@ const app = {
       ui.log(`File di-generate/diperbarui: ${filepath}`, 'info');
     }
 
-    // 2. Ekstraksi Fallback (Penyelamat jika AI ngeyel pakai Markdown)
+    // FALLBACK: Jika AI membandel pakai Markdown
     if (!fileFound) {
-      ui.log('AI mengabaikan tag XML. Mengaktifkan sistem penyelamat darurat...', 'warn');
-      
-      // Mencari pola markdown ```jsx ... ``` atau ```javascript ... ```
+      ui.log('Mendeteksi format Markdown. Mengaktifkan sistem Penyelamat...', 'warn');
       const mdRegex = /```(?:jsx|js|javascript|tsx|html|css)?\s*([\s\S]*?)```/gi;
       const mdMatches = [...text.matchAll(mdRegex)];
 
       if (mdMatches.length > 0) {
-        // Ambil blok kode terbesar/pertama dan paksa masuk ke App.jsx
-        const rescuedCode = mdMatches[0][1].trim();
+        let rescuedCode = mdMatches[0][1].trim();
         app.files['src/App.jsx'] = rescuedCode;
         fileFound = true;
-        ui.log('Berhasil menyelamatkan kode AI dan disuntikkan ke src/App.jsx', 'success');
+        ui.log('Berhasil menyelamatkan kode AI ke src/App.jsx', 'success');
       }
     }
-
     return fileFound;
+  },
+
+  // Fitur Canggih: Mengubah kode React menjadi HTML murni yang bisa di-render langsung di browser tanpa Vercel
+  togglePreview: () => {
+    const frame = document.getElementById('preview-frame');
+    const editor = document.getElementById('input-code');
+    const btn = document.getElementById('btn-preview');
+    
+    app.isPreviewMode = !app.isPreviewMode;
+
+    if (app.isPreviewMode) {
+      // Masuk Mode Preview
+      frame.classList.remove('hidden');
+      editor.classList.add('hidden');
+      btn.innerHTML = '💻 Kembali ke Editor';
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-outline');
+      
+      ui.log('Memuat React Babel Engine & Tailwind CSS...', 'info');
+      
+      // Mengambil kode React dan membersihkan statement import/export agar bisa dibaca Babel Standalone
+      let appCode = app.files['src/App.jsx'] || '';
+      appCode = appCode.replace(/import .*?;/g, '').replace(/export default/g, '');
+      let cssCode = app.files['src/index.css'] || '';
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>${cssCode}</style>
+          <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+          <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+          <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+          <!-- Ikon Lucide untuk UI mewah -->
+          <script src="https://unpkg.com/lucide@latest"></script>
+        </head>
+        <body>
+          <div id="root"></div>
+          <script type="text/babel">
+            // Injecting React App
+            ${appCode}
+            
+            // Rendering to DOM
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+          </script>
+        </body>
+        </html>
+      `;
+      frame.srcdoc = htmlContent;
+    } else {
+      // Kembali ke Mode Kode
+      frame.classList.add('hidden');
+      editor.classList.remove('hidden');
+      btn.innerHTML = '👀 Live Preview';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-outline');
+      frame.srcdoc = ''; // Bersihkan memori iframe
+    }
   },
 
   activate: async () => {
@@ -152,7 +212,6 @@ const app = {
       ui.toast('Selamat datang di Workspace!');
     } catch (err) {
       ui.log(`Akses Ditolak: ${err.message}`, 'error');
-      ui.toast('Gagal masuk', 'error');
     } finally {
       ui.reset('btn-auth');
     }
@@ -173,10 +232,9 @@ const app = {
         app.renderExplorer();
         app.switchFile('src/App.jsx');
         ui.toast('Aplikasi berhasil dirakit!', 'success');
-        ui.log('Proses perakitan selesai. Silakan periksa kode Anda.');
+        ui.log('Selesai! Klik tombol "👀 Live Preview" untuk melihat hasilnya.');
       } else {
         ui.log('Sistem Penyelamat Gagal: AI merespons dengan format yang sama sekali tidak ada kodenya.', 'error');
-        console.error("Raw AI Output:", res.data.answer);
       }
     } catch (err) {
       ui.log(`AI Error: ${err.message}`, 'error');
@@ -190,19 +248,13 @@ const app = {
     ui.log('Memulai operasi bedah kode (Audit & Debugging)...', 'warn');
     
     try {
-      const res = await app.callServer({ 
-        action: 'auditCode', 
-        files: app.files
-      });
-      
+      const res = await app.callServer({ action: 'auditCode', files: app.files });
       const success = app.parseXMLResponse(res.data.answer);
       if (success) {
         app.renderExplorer();
         app.switchFile(app.activeFile); 
         ui.toast('Bug berhasil dibersihkan!', 'success');
         ui.log('Audit selesai. Struktur file telah disinkronkan.');
-      } else {
-        ui.log('Sistem Penyelamat Gagal: Format audit tidak valid.', 'error');
       }
     } catch (err) {
       ui.log(`Audit Gagal: ${err.message}`, 'error');
@@ -215,14 +267,9 @@ const app = {
     const id = document.getElementById('input-project').value.trim();
     if (!id) return ui.toast('Masukkan Project ID (Slug)', 'error');
 
-    ui.loading('btn-save', 'Sync ke Cloud...');
+    ui.loading('btn-save', 'Sync...');
     try {
-      await app.callServer({ 
-        action: 'saveProject', 
-        projectId: id, 
-        email: app.email, 
-        code: JSON.stringify(app.files) 
-      });
+      await app.callServer({ action: 'saveProject', projectId: id, email: app.email, code: JSON.stringify(app.files) });
       ui.toast('Tersimpan di Cloud!');
       ui.log(`Proyek [${id}] sukses disinkronkan ke server.`);
     } catch (err) {

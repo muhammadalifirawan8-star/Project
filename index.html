@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppCraft IDE - Ultimate Edition</title>
+  <style>
+    /* DESAIN & TATA LETAK */
+    :root {
+      --bg-dark: #0f172a; --bg-panel: #1e293b; --bg-editor: #020617;
+      --text-main: #f8fafc; --text-muted: #94a3b8; --border: #334155; 
+      --primary: #3b82f6; --primary-hover: #2563eb;
+      --success: #10b981; --success-hover: #059669; 
+      --purple: #8b5cf6; --purple-hover: #7c3aed;
+      --warning: #f59e0b; --danger: #ef4444; 
+      --font-sans: 'Inter', system-ui, sans-serif; --font-mono: 'JetBrains Mono', Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: var(--bg-dark); color: var(--text-main); font-family: var(--font-sans); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; background-color: var(--bg-panel); border-bottom: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10; }
+    .brand { font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; }
+    .badge { background: #334155; color: #cbd5e1; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+    .badge.active { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+
+    .layout { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 360px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+    .sidebar-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; flex: 1; }
+    
+    /* Toggle Tabs untuk Sidebar (Explorer vs Chat) */
+    .sidebar-tabs { display: flex; border-top: 1px solid var(--border); background: #0f172a; }
+    .sb-tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); transition: 0.2s; }
+    .sb-tab.active { color: var(--primary); background: var(--bg-panel); border-top: 2px solid var(--primary); }
+    .sb-tab:hover:not(.active) { background: rgba(255,255,255,0.05); }
+
+    .editor-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-editor); }
+    
+    .panel { background: rgba(15, 23, 42, 0.4); padding: 18px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 12px;}
+    .panel h3 { font-size: 0.95rem; margin-bottom: 12px; }
+    label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    
+    .input-modern { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 8px; width: 100%; margin-top: 6px; margin-bottom: 12px; font-family: var(--font-sans); }
+    .input-modern:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+    
+    .btn { padding: 12px 16px; border: none; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: white; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; transition: 0.2s; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); } .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-success { background: var(--success); } .btn-purple { background: var(--purple); }
+    .btn-warning { background: var(--warning); color: #000; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); width: auto; }
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Explorer */
+    .file-tree { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+    .file-item { padding: 8px 12px; border-radius: 6px; color: var(--text-muted); cursor: pointer; display: flex; gap: 8px; }
+    .file-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+    .file-item.active { background: rgba(59, 130, 246, 0.15); color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
+
+    /* Chat UI */
+    .chat-container { display: flex; flex-direction: column; height: 100%; }
+    .chat-history { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; padding-right: 4px; }
+    .chat-msg { padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; max-width: 90%; }
+    .chat-msg.user { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 0; }
+    .chat-msg.ai { background: var(--border); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 0; }
+    .chat-input-wrapper { display: flex; gap: 8px; }
+
+    .editor-header { background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 16px; }
+    .tab { padding: 14px 20px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 2px solid transparent; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-editor); font-weight: 600; }
+    .code-editor { flex: 1; background: transparent; color: #e2e8f0; font-family: var(--font-mono); font-size: 14px; padding: 24px; border: none; outline: none; resize: none; }
+    .preview-frame { flex: 1; width: 100%; border: none; background: #fff; }
+    
+    .terminal-container { height: 200px; border-top: 1px solid var(--border); background: #050505; display: flex; flex-direction: column; }
+    .terminal-header { background: #111; padding: 10px 16px; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid #222; }
+    .terminal-body { flex: 1; padding: 16px; color: #4ade80; font-family: var(--font-mono); font-size: 0.85rem; overflow-y: auto; }
+    .log-error { color: #f87171; } .log-info { color: #60a5fa; } .log-warn { color: #fbbf24; }
+    
+    .hidden { display: none !important; }
+    .toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; z-index: 9999; background: var(--success); color: white; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">AppCraft IDE Pro</div>
+    <div class="badge" id="user-badge">Offline</div>
+  </nav>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-content" id="sidebar-main">
+        <!-- Auth -->
+        <div class="panel" id="panel-auth">
+          <h3>🔐 Akses Workspace</h3>
+          <input type="email" id="input-email" class="input-modern" placeholder="developer@appcraft.com">
+          <button id="btn-auth" class="btn btn-primary" onclick="app.activate()">Mulai Sesi</button>
+        </div>
+
+        <div id="workspace-controls" class="hidden">
+          <!-- Config -->
+          <div class="panel">
+            <h3>⚙️ Kontrol Cloud</h3>
+            <label>Project ID (Slug Vercel)</label>
+            <input type="text" id="input-project" class="input-modern" placeholder="aplikasi-ku-01">
+            <div class="action-grid">
+              <button id="btn-save" class="btn btn-success" onclick="app.save()">💾 Simpan</button>
+              <button id="btn-publish" class="btn btn-purple" onclick="app.publish()">🚀 Deploy</button>
+            </div>
+          </div>
+
+          <!-- Generate -->
+          <div class="panel">
+            <h3>🤖 AI Generator</h3>
+            <textarea id="input-prompt" class="input-modern" rows="3" placeholder="Buatkan aplikasi..."></textarea>
+            <button id="btn-ai" class="btn btn-primary" onclick="app.askGemini()" style="margin-bottom:8px;">✨ Generate (1-Hit)</button>
+            <button id="btn-audit" class="btn btn-warning" onclick="app.auditCode()">🛠️ AI Audit & Fix</button>
+          </div>
+          
+          <!-- Explorer -->
+          <div class="panel">
+            <h3>📁 File Explorer</h3>
+            <div class="file-tree" id="file-tree-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Panel (Hidden by default) -->
+      <div class="sidebar-content hidden" id="sidebar-chat">
+        <div class="panel chat-container">
+          <h3>💬 AI Assistant</h3>
+          <div class="chat-history" id="chat-history">
+            <div class="chat-msg ai">Halo! Saya siap membantu memperbaiki atau menambahkan fitur pada kode Anda. Beritahu saya apa yang ingin diubah!</div>
+          </div>
+          <div class="chat-input-wrapper">
+            <input type="text" id="input-chat" class="input-modern" style="margin:0;" placeholder="Contoh: Ubah tombol jadi merah..." onkeypress="if(event.key === 'Enter') app.sendChat()">
+            <button id="btn-chat" class="btn btn-primary" style="width:auto;" onclick="app.sendChat()">Kirim</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Tabs -->
+      <div class="sidebar-tabs hidden" id="sidebar-tabs">
+        <div class="sb-tab active" id="tab-explorer" onclick="app.toggleSidebar('explorer')">📁 Explorer & Tools</div>
+        <div class="sb-tab" id="tab-chat" onclick="app.toggleSidebar('chat')">💬 AI Chat</div>
+      </div>
+    </aside>
+
+    <section class="editor-area">
+      <div class="editor-header">
+        <div class="tab active" id="active-tab-name">Menunggu Workspace...</div>
+        <button id="btn-preview" class="btn btn-outline" onclick="app.togglePreview()">👀 Live Preview</button>
+      </div>
+      <textarea id="input-code" class="code-editor" spellcheck="false"></textarea>
+      <iframe id="preview-frame" class="preview-frame hidden" sandbox="allow-scripts allow-same-origin"></iframe>
+      
+      <div class="terminal-container">
+        <div class="terminal-header">Terminal / Build Logs</div>
+        <div class="terminal-body" id="terminal-body"><div class="log-info">> Core siap. Menunggu perintah...</div></div>
+      </div>
+    </section>
+  </main>
+  <div id="toast" class="toast hidden">Notifikasi</div>
+
+  <script>
+    // WAJIB GANTI URL INI SETELAH DEPLOY CODE.GS
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
+
+    const escapeHTML = (str) => String(str).replace(/[&<>'"]/g, t => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[t]));
+
+    const ui = {
+      log: (msg, type = 'success') => {
+        const term = document.getElementById('terminal-body');
+        const color = type === 'error' ? 'log-error' : type === 'info' ? 'log-info' : type === 'warn' ? 'log-warn' : '';
+        term.innerHTML += `<div class="${color}">[${new Date().toLocaleTimeString('id-ID', {hour12:false})}] > ${escapeHTML(msg)}</div>`;
+        term.scrollTop = term.scrollHeight;
+      },
+      toast: (msg) => {
+        const t = document.getElementById('toast'); t.innerText = msg; t.classList.remove('hidden');
+        setTimeout(() => t.classList.add('hidden'), 3000);
+      },
+      loading: (btnId, text) => {
+        const btn = document.getElementById(btnId);
+        btn.dataset.original = btn.innerHTML; btn.innerHTML = `⏳ ${text}`; btn.disabled = true;
+      },
+      reset: (btnId) => {
+        const btn = document.getElementById(btnId);
+        if (btn.dataset.original) btn.innerHTML = btn.dataset.original; btn.disabled = false;
+      },
+      addChat: (sender, msg) => {
+        const history = document.getElementById('chat-history');
+        history.innerHTML += `<div class="chat-msg ${sender}">${escapeHTML(msg)}</div>`;
+        history.scrollTop = history.scrollHeight;
+      }
+    };
+
+    const app = {
+      email: '', activeFile: 'src/App.jsx', isPreviewMode: false,
+      
+      // BOILERPLATE ABSOLUT (Sistem Beban Nol)
+      files: {
+        'package.json': JSON.stringify({"name":"app","version":"1.0.0","type":"module","scripts":{"dev":"vite","build":"vite build"},"dependencies":{"react":"^18.2.0","react-dom":"^18.2.0","lucide-react":"^0.263.1"},"devDependencies":{"@vitejs/plugin-react":"^4.2.1","vite":"^5.1.4","tailwindcss":"^3.4.1","autoprefixer":"^10.4.18","postcss":"^8.4.35"}}, null, 2),
+        'vite.config.js': "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nexport default defineConfig({ plugins: [react()] });",
+        'index.html': "<!DOCTYPE html>\n<html lang=\"en\">\n<head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>App</title></head>\n<body><div id=\"root\"></div><script type=\"module\" src=\"/src/main.jsx\"><\/script></body>\n</html>",
+        'src/main.jsx': "import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport App from './App.jsx';\nimport './index.css';\nReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);",
+        'src/index.css': "@tailwind base;\n@tailwind components;\n@tailwind utilities;",
+        'src/App.jsx': "import React from 'react';\nexport default function App() { return <div className='p-10'>Menunggu AI Generate...</div>; }"
+      },
+
+      init: () => { document.getElementById('input-code').addEventListener('input', (e) => app.files[app.activeFile] = e.target.value); },
+      
+      renderExplorer: () => {
+        const c = document.getElementById('file-tree-container'); c.innerHTML = '';
+        Object.keys(app.files).sort().forEach(f => {
+          const el = document.createElement('div');
+          el.className = `file-item ${f === app.activeFile ? 'active' : ''}`;
+          el.innerText = f.includes('/') ? `📄 ${f.split('/').pop()}` : `📁 ${f}`;
+          el.onclick = () => app.switchFile(f); c.appendChild(el);
+        });
+      },
+
+      switchFile: (f) => {
+        if (app.isPreviewMode) app.togglePreview();
+        app.activeFile = f; document.getElementById('input-code').value = app.files[f];
+        document.getElementById('active-tab-name').innerText = f; app.renderExplorer();
+      },
+
+      toggleSidebar: (view) => {
+        document.getElementById('sidebar-main').classList.toggle('hidden', view !== 'explorer');
+        document.getElementById('sidebar-chat').classList.toggle('hidden', view !== 'chat');
+        document.getElementById('tab-explorer').classList.toggle('active', view === 'explorer');
+        document.getElementById('tab-chat').classList.toggle('active', view === 'chat');
+      },
+
+      callServer: async (payload) => {
+        const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (data.status !== 'success') throw new Error(data.message);
+        return data;
+      },
+
+      parseXMLResponse: (text) => {
+        const xmlRegex = /<file\s+(?:path|name)=['"]?([^'"]+)['"]?>([\s\S]*?)<\/file>/gi;
+        let match, found = false;
+        while ((match = xmlRegex.exec(text)) !== null) {
+          app.files[match[1].trim()] = match[2].trim(); found = true;
+          ui.log(`File diperbarui: ${match[1]}`, 'info');
+        }
+        
+        // Smart Fallback jika AI bandel pakai Markdown
+        if (!found) {
+          const mdRegex = /```(?:jsx|js)?\s*([\s\S]*?)```/i;
+          const mdMatch = text.match(mdRegex);
+          if (mdMatch) { app.files['src/App.jsx'] = mdMatch[1].trim(); found = true; ui.log('Fallback Markdown ke App.jsx aktif.', 'warn'); }
+        }
+        return found;
+      },
+
+      togglePreview: () => {
+        const frame = document.getElementById('preview-frame'), editor = document.getElementById('input-code'), btn = document.getElementById('btn-preview');
+        app.isPreviewMode = !app.isPreviewMode;
+        if (app.isPreviewMode) {
+          frame.classList.remove('hidden'); editor.classList.add('hidden');
+          btn.innerHTML = '💻 Kembali Edit'; btn.classList.add('btn-primary'); btn.classList.remove('btn-outline');
+          ui.log('Kompilasi Babel & Tailwind berjalan...', 'info');
+          let appCode = (app.files['src/App.jsx']||'').replace(/import .*?;/g, '').replace(/export default/g, '');
+          
+          frame.srcdoc = `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"><\/script><style>${app.files['src/index.css']||''}</style><script src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script><script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script><script src="https://unpkg.com/lucide@latest"><\/script></head><body><div id="root"></div><script type="text/babel">${appCode}\nReactDOM.createRoot(document.getElementById('root')).render(<App />);<\/script></body></html>`;
+        } else {
+          frame.classList.add('hidden'); editor.classList.remove('hidden');
+          btn.innerHTML = '👀 Live Preview'; btn.classList.remove('btn-primary'); btn.classList.add('btn-outline'); frame.srcdoc = '';
+        }
+      },
+
+      activate: async () => {
+        const em = document.getElementById('input-email').value.trim(); if(!em) return ui.toast('Email wajib!');
+        ui.loading('btn-auth', 'Verifikasi...');
+        try {
+          await app.callServer({ action: 'activateAccount', email: em }); app.email = em;
+          document.getElementById('panel-auth').classList.add('hidden');
+          document.getElementById('workspace-controls').classList.remove('hidden');
+          document.getElementById('sidebar-tabs').classList.remove('hidden');
+          document.getElementById('user-badge').innerText = 'Online'; document.getElementById('user-badge').classList.add('active');
+          app.renderExplorer(); app.switchFile('src/App.jsx'); ui.toast('Workspace Aktif!');
+        } catch(e) { ui.log(e.message, 'error'); } finally { ui.reset('btn-auth'); }
+      },
+
+      askGemini: async () => {
+        const p = document.getElementById('input-prompt').value.trim(); if(!p) return ui.toast('Isi prompt!');
+        ui.loading('btn-ai', 'AI Bekerja...'); ui.log('Menjalankan Strategi 1-Hit...');
+        try {
+          const res = await app.callServer({ action: 'askGemini', prompt: p });
+          if (app.parseXMLResponse(res.data.answer)) {
+            app.renderExplorer(); app.switchFile('src/App.jsx');
+            ui.toast('Aplikasi Sukses Dibuat!'); ui.log('Silakan klik Live Preview.');
+          } else ui.log('Format AI tidak dikenali sama sekali.', 'error');
+        } catch(e) { ui.log(e.message, 'error'); } finally { ui.reset('btn-ai'); }
+      },
+
+      sendChat: async () => {
+        const input = document.getElementById('input-chat'); const msg = input.value.trim();
+        if(!msg) return;
+        ui.addChat('user', msg); input.value = ''; ui.loading('btn-chat', '...');
+        try {
+          const res = await app.callServer({ action: 'chatGemini', message: msg, code: app.files['src/App.jsx'] });
+          const hasCode = app.parseXMLResponse(res.data.answer);
+          const cleanMsg = res.data.answer.replace(/<file[\s\S]*?<\/file>/gi, '').trim();
+          ui.addChat('ai', cleanMsg || (hasCode ? "Kode App.jsx telah saya perbarui sesuai permintaan Anda!" : "Selesai."));
+          
+          if(hasCode) {
+            app.renderExplorer(); app.switchFile('src/App.jsx');
+            if(app.isPreviewMode) { app.togglePreview(); app.togglePreview(); } // Refresh preview
+          }
+        } catch(e) { ui.addChat('ai', 'Error: ' + e.message); } finally { ui.reset('btn-chat'); }
+      },
+
+      auditCode: async () => {
+        ui.loading('btn-audit', 'Audit...'); ui.log('Mencari bug...');
+        try {
+          const res = await app.callServer({ action: 'auditCode', files: app.files });
+          if(app.parseXMLResponse(res.data.answer)) { app.renderExplorer(); app.switchFile(app.activeFile); ui.toast('Bug diperbaiki!'); }
+        } catch(e) { ui.log(e.message, 'error'); } finally { ui.reset('btn-audit'); }
+      },
+
+      save: async () => {
+        const id = document.getElementById('input-project').value.trim(); if(!id) return ui.toast('Isi Project ID!');
+        ui.loading('btn-save', 'Sync...');
+        try {
+          await app.callServer({ action: 'saveProject', projectId: id, email: app.email, code: JSON.stringify(app.files) });
+          ui.toast('Tersimpan di Cloud!');
+        } catch(e) { ui.log(e.message, 'error'); } finally { ui.reset('btn-save'); }
+      },
+
+      publish: () => {
+        const id = document.getElementById('input-project').value.trim(); if(!id) return ui.toast('Simpan dulu!');
+        window.open(`${GAS_URL}?id=${id}`, '_blank');
+      }
+    };
+    
+    document.addEventListener('DOMContentLoaded', app.init);
+  </script>
+</body>
+</html>

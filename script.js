@@ -1,5 +1,5 @@
 // [WAJIB] GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA YANG BARU
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwyA1nRO_bKw_miy5RWZO1xJ6VMQihTuI_XQ7mnG4dCHSUCRYQm-UXhyAzS-r7MdW4C/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzCFFsuEjgLKHRtmaMkDh_O3HSvPMYKdqmfOc-lfE_z_fCQIHcwcljUoPuWOLWWN_tg/exec';
 
 const escapeHTML = (str) => String(str).replace(/[&<>'"]/g, 
   tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])

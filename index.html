@@ -220,7 +220,7 @@
     // ==========================================
     // WAJIB GANTI: URL Web App Google Apps Script Anda
     // ==========================================
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyVlKsPIfwPkjIfkWRG0dHb0ul3nZavJrBBK0a6-3_qoRIH_7szNoK0qqeO_MrYcWr1/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVgMxmJ1pQJVSu24_7YBBv0ctuEAqkbnXJyGje4Yiv2gNJi69pxp_rcoVTS3bwdyU9/exec';
 
     const escapeHTML = (str) => {
       return String(str).replace(/[&<>'"]/g, 
@@ -253,8 +253,10 @@
         if (type === 'error') color = '#ef4444';
         else if (type === 'warn') color = '#eab308';
         else if (type === 'highlight') color = '#a855f7';
-        const timestamp = new Date().toLocaleTimeString('id-ID');
-        term.innerHTML += '<br><span style="color: #64748b">[' + timestamp + ']</span> <span style="color: ' + color + '">> ' + escapeHTML(msg) + '</span>';
+        
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2,'0')}.${String(now.getMinutes()).padStart(2,'0')}.${String(now.getSeconds()).padStart(2,'0')}`;
+        term.innerHTML += `<br><span style="color: #64748b">[${timeStr}]</span> <span style="color: ${color}">> ${escapeHTML(msg)}</span>`;
         term.scrollTop = term.scrollHeight;
       }
     };
@@ -342,6 +344,8 @@
               cleanContent = cleanContent.replace(/export\s+function/g, 'function');
               cleanContent = cleanContent.replace(/export\s+default\s+const/g, 'const');
               cleanContent = cleanContent.replace(/export\s+const/g, 'const');
+              
+              // Anti-Bug: Pembersih export duplicate tingkat lanjut
               cleanContent = cleanContent.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, '');
               cleanContent = cleanContent.replace(/export\s+\{.*?\};?/g, ''); 
               
@@ -350,9 +354,9 @@
           }
           
           mainCode = extractImports(mainCode);
-          
           const uniqueImports = [...new Set(importsArray)].join('\n');
           
+          // Anti-Bug: Trik untuk memecah script agar browser tidak bingung
           const scriptStart = '<' + 'script type="text/babel" data-type="module">';
           const scriptEnd = '<' + '/script>';
 
@@ -373,6 +377,7 @@
   <`+`script src="https://unpkg.com/@babel/standalone/babel.min.js"><`+`/script>
   <style>${app.files['index.css'] || app.files['style.css'] || ''}</style>
   <`+`script>
+    // Global Error Catcher yang aman untuk Top-Level Import
     window.addEventListener('error', function(e) {
       document.getElementById('root').innerHTML = '<div style="color:red; background:#fee2e2; padding:20px; font-family:sans-serif; border:1px solid #ef4444; border-radius:8px;"><h3>🚨 React Error Terdeteksi</h3><p>' + e.message + '</p><p style="font-size:12px; margin-top:10px;">Gunakan tombol AI Audit & Perbaiki Bug di panel kiri.</p></div>';
     });
@@ -382,7 +387,7 @@
   <div id="root"></div>
   
   ${scriptStart}
-// Top-Level Imports ES6
+// Top-Level Imports ES6 (Tanpa dibungkus try-catch agar tidak SyntaxError)
 ${uniqueImports}
 
 ${allComponentsCode}
@@ -412,9 +417,7 @@ ${mainCode}
         ui.loading('btn-auth', 'Memproses...');
         try {
           const response = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            redirect: 'follow',
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow',
             body: JSON.stringify({ action: 'activateAccount', email: emailInput })
           });
           const res = await response.json();
@@ -427,11 +430,7 @@ ${mainCode}
             document.getElementById('user-badge').innerText = 'Online';
             document.getElementById('user-badge').classList.add('active');
           } else throw new Error(res.message);
-        } catch (err) {
-          ui.toast('Gagal terhubung', 'error');
-        } finally {
-          ui.reset('btn-auth');
-        }
+        } catch (err) { ui.toast('Gagal terhubung', 'error'); } finally { ui.reset('btn-auth'); }
       },
 
       save: async () => {
@@ -440,9 +439,7 @@ ${mainCode}
         ui.loading('btn-save', 'Simpan...');
         try {
           const response = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            redirect: 'follow',
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow',
             body: JSON.stringify({ action: 'saveProject', projectId: id, email: app.email, code: JSON.stringify(app.files) })
           });
           const res = await response.json();
@@ -456,9 +453,7 @@ ${mainCode}
         ui.loading('btn-history', 'Mencari...');
         try {
           const response = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            redirect: 'follow',
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow',
             body: JSON.stringify({ action: 'getHistory', projectId: id })
           });
           const res = await response.json();
@@ -562,20 +557,42 @@ ${mainCode}
         }
       },
 
-      // Pengurai JSON AI Ekstrem - Anti Gagal
+      // PENGURAI DATA REVOLUSIONER (STRATEGI TAG XML) - 100% KEBAL ERROR PANJANG KODE
       parseAIPayload: (rawStr) => {
-        let cleaned = rawStr.trim();
-        // Buang jubah markdown jika ada
-        cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+        let files = {};
+        let foundXML = false;
         
-        // Cari kurung JSON terluar
-        const first = cleaned.indexOf('{');
-        const last = cleaned.lastIndexOf('}');
-        if (first !== -1 && last !== -1 && last > first) {
-            cleaned = cleaned.substring(first, last + 1);
+        // Mengekstrak konten dari dalam tag <file path="namafile"> ... </file>
+        const xmlRegex = /<file\s+path=["']([^"']+)["']>([\s\S]*?)<\/file>/gi;
+        let match;
+
+        while ((match = xmlRegex.exec(rawStr)) !== null) {
+            foundXML = true;
+            let filename = match[1];
+            let content = match[2];
+
+            // Bersihkan sisa-sisa markdown backticks (```) jika AI bandel menyisipkannya
+            content = content.replace(/^```[a-zA-Z]*\n?/g, '').replace(/```$/g, '').trim();
+            files[filename] = content;
         }
-        
-        return JSON.parse(cleaned); // Akan terlempar ke catch blok utama jika masih gagal
+
+        if (foundXML) {
+            return files;
+        } else {
+            // Jika AI GAGAL menggunakan XML dan masih ngeyel mengirim JSON murni
+            try {
+                let cleaned = rawStr.trim();
+                cleaned = cleaned.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+                const first = cleaned.indexOf('{');
+                const last = cleaned.lastIndexOf('}');
+                if (first !== -1 && last !== -1) {
+                    cleaned = cleaned.substring(first, last + 1);
+                }
+                return JSON.parse(cleaned);
+            } catch(e) {
+                throw new Error("AI gagal mengikuti format Tag XML. Struktur data berantakan atau terpotong.");
+            }
+        }
       },
 
       askGemini: async () => {
@@ -588,11 +605,11 @@ ${mainCode}
         
         try {
           const response = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            redirect: 'follow',
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow',
             body: JSON.stringify({ action: 'askGemini', prompt: promptInput, template: templateInput })
           });
+          
+          if (!response.ok) throw new Error(`HTTP Error ${response.status}: Silakan periksa URL GAS atau jaringan Anda.`);
           const res = await response.json();
           
           if (res.status === 'success') {
@@ -613,14 +630,14 @@ ${mainCode}
                 app.switchFile(app.activeFile); app.refreshPreview();
               }
             } catch (parseError) {
-              ui.log(`AI membalas dengan format yang tidak bisa dibaca. (Detail: ${parseError.message})`, 'error');
+              ui.log(`Gagal membaca respons dari AI. (Detail: ${parseError.message})`, 'error');
               ui.toast('Gagal mengurai respons AI', 'error');
             }
             document.getElementById('input-prompt').value = '';
           } else { throw new Error(res.message); }
         } catch (err) { 
           ui.toast('Gagal terhubung ke AI', 'error'); 
-          ui.log(`Koneksi Backend Gagal: ${err.message}. Pastikan GAS_URL valid dan akses di-set ke 'Anyone'.`, 'error');
+          ui.log(`Koneksi Backend Gagal: ${err.message}. Pastikan URL GAS benar dan di-deploy sebagai 'Anyone'.`, 'error');
         } finally { ui.reset('btn-ai'); }
       },
 
@@ -631,11 +648,11 @@ ${mainCode}
         
         try {
           const response = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            redirect: 'follow',
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow',
             body: JSON.stringify({ action: 'auditCode', files: app.files })
           });
+          
+          if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
           const res = await response.json();
           
           if (res.status === 'success') {
@@ -654,13 +671,13 @@ ${mainCode}
               ui.log('✅ AI Debugger berhasil menyelesaikan masalah. Aplikasi sekarang bersih.', 'success');
 
             } catch (parseError) {
-              ui.log(`Gagal membaca respons perbaikan dari AI. (Detail: ${parseError.message})`, 'error');
+              ui.log(`Gagal membaca perbaikan dari AI. (Detail: ${parseError.message})`, 'error');
               ui.toast('Gagal mengurai Audit AI', 'error');
             }
           } else { throw new Error(res.message); }
         } catch (err) { 
           ui.toast('Gagal melakukan audit', 'error'); 
-          ui.log(`Koneksi Backend Gagal: ${err.message}. Pastikan GAS_URL valid.`, 'error');
+          ui.log(`Koneksi Backend Gagal: ${err.message}.`, 'error');
         } finally { 
           ui.reset('btn-audit'); 
         }
